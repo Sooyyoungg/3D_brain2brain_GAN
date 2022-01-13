@@ -8,9 +8,9 @@ class Generator(nn.Module):
         self.Decoder = Decoder
 
     def forward(self, struct_image):
-        # (2, 256, 256, 256) -> (256, 16, 16, 16)
+        # struct: (2, 256, 256, 256) -> (256, 16, 16, 16)
         enc_str = self.Encoder(struct_image)
-        # (256, 16, 16, 16) -> (1, 256, 256, 256)
+        # (256, 16, 16, 16) -> (1, 190, 190, 190)
         gen_dwi = self.Decoder(enc_str)
         return gen_dwi
 
@@ -39,9 +39,11 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, dwi):
+        # dwi: (1, 190, 190, 190) ->
         result = self.Discriminate(dwi)
         print("discriminate result shape:", result.shape)
         return result.view(-1, result.size(1))
+
 
 ####################### Encoder & Decoder #######################
 class ResEncoder(nn.Module):

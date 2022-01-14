@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 class ResBlock(nn.Module):
@@ -38,7 +39,8 @@ class Conv3dBlock(nn.Module):
         elif pad_type == 'replicate':
             self.pad = nn.ReplicationPad3d(padding)
         elif pad_type == 'zero':
-            self.pad = nn.ZeroPad3d(padding)
+            #self.pad = nn.ZeroPad3d(padding, 0)
+            self.pad = nn.ConstantPad3d(padding, 0)
         else:
             assert 0, "Unsupported padding type: {}".format(pad_type)
 
@@ -49,8 +51,8 @@ class Conv3dBlock(nn.Module):
         elif norm == 'in':
             #self.norm = nn.InstanceNorm3d(norm_dim, track_running_stats=True)
             self.norm = nn.InstanceNorm3d(norm_dim)
-        #elif norm == 'ln':
-        #    self.norm = LayerNorm(norm_dim)
+        elif norm == 'ln':
+            self.norm = LayerNorm(norm_dim)
         #elif norm == 'adain':
         #    self.norm = AdaptiveInstanceNorm3d(norm_dim)
         elif norm == 'none' or norm == 'sn':
@@ -91,4 +93,33 @@ class Conv3dBlock(nn.Module):
             x = self.norm(x)
         if self.activation:
             x = self.activation(x)
+        return x
+
+class LayerNorm(nn.Module):
+    def __init__(self, num_features, eps=1e-5, affine=True):
+        super(LayerNorm, self).__init__()
+        self.num_features = num_features
+        self.affine = affine
+        self.eps = eps
+
+        if self.affine:
+            self.gamma = nn.Parameter(torch.Tensor(num_features).uniform_())
+            self.beta = nn.Parameter(torch.zeros(num_features))
+
+    def forward(self, x):
+        shape = [-1] + [1] * (x.dim() - 1)
+        # print(x.size())
+        if x.size(0) == 1:
+            # These two lines run much faster in pytorch 0.4 than the two lines listed below.
+            mean = x.view(-1).mean().view(*shape)
+            std = x.view(-1).std().view(*shape)
+        else:
+            mean = x.view(x.size(0), -1).mean(1).view(*shape)
+            std = x.view(x.size(0), -1).std(1).view(*shape)
+
+        x = (x - mean) / (std + self.eps)
+
+        if self.affine:
+            shape = [1, -1] + [1] * (x.dim() - 2)
+            x = x * self.gamma.view(*shape) + self.beta.view(*shape)
         return x

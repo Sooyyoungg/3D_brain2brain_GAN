@@ -33,7 +33,7 @@ parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads 
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
 parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")"""
 parser.add_argument('-a', '--attribute', type=str, help='Specify category for training.')
-parser.add_argument('-g', '--gpu', default=[], nargs='+', type=int, help='Specify GPU ids.')
+parser.add_argument('-g', '--gpu', default=[0], nargs='+', type=int, help='Specify GPU ids.')
 parser.add_argument('-r', '--restore', default=None, action='store', type=int, help='Specify checkpoint id to restore.')
 parser.add_argument('-m', '--mode', default='train', type=str, choices=['train', 'test'])
 
@@ -63,14 +63,16 @@ data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=args.batc
 data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
 data_loader_test = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
 
+for index, struct in enumerate(data_loader_train):
+    print(index, struct.shape)
 #train_iter = iter(data_loader_train)
 #st = train_iter.next()
 #print(type(st))   # <class 'torch.Tensor'>
 #print(st.size())  # torch.Size([64, 2, 256, 256, 256])
 
 ### model
-model = GAN_3D(args, config)
-model.train(data_loader_train, 1000)
+model = GAN_3D(args, config, data_loader_train, data_loader_val, config.epoch)
+model.train()
 
 """### Generator & Discriminator
 # Initialize generator and discriminator
@@ -89,7 +91,7 @@ optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt
 Tensor = torch.cuda.FloatTensor if device else torch.FloatTensor
 
 for epoch in range(args.n_epochs):
-    for i, (struct, dwi, grad) in enumerate(data_loader_train):
+    for i, (img, _) in enumerate(data_loader_train):
         print(struct.shape)  # torch.Size([64, 1, 28, 28])
         print(dwi.shape)
 

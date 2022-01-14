@@ -4,14 +4,17 @@ from Blocks import  Conv3dBlock, ResBlocks
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
-        self.Encoder = ResEncoder
-        self.Decoder = Decoder
+        self.Encoder = ResEncoder()
+        self.Decoder = Decoder()
+        self.generate = nn.ModuleList()
+        # struct: (2, 256, 256, 256) -> (256, 16, 16, 16)
+        self.generate.append(self.Encoder)
+        # (256, 16, 16, 16) -> (1, 190, 190, 190)
+        self.generate.append(self.Decoder)
 
     def forward(self, struct_image):
-        # struct: (2, 256, 256, 256) -> (256, 16, 16, 16)
-        enc_str = self.Encoder(struct_image)
-        # (256, 16, 16, 16) -> (1, 190, 190, 190)
-        gen_dwi = self.Decoder(enc_str)
+        for code in self.generate:
+            gen_dwi = code(struct_image)
         return gen_dwi
 
 class Discriminator(nn.Module):
@@ -47,7 +50,7 @@ class Discriminator(nn.Module):
 
 ####################### Encoder & Decoder #######################
 class ResEncoder(nn.Module):
-    def __init__(self, norm, activ, pad_type):
+    def __init__(self, norm='none', activ='relu', pad_type='zero'):
         super(ResEncoder, self).__init__()
         self.input_dim = 256
         self.dim = 16
@@ -75,7 +78,7 @@ class ResEncoder(nn.Module):
         return self.model(x)
 
 class Decoder(nn.Module):
-    def __init__(self, res_norm='adain', activ='tanh', pad_type='zero'):
+    def __init__(self, res_norm='none', activ='tanh', pad_type='zero'):
         super(Decoder, self).__init__()
         self.output_dim = 1
         self.dim = 256
@@ -83,7 +86,6 @@ class Decoder(nn.Module):
         self.n_res = 4
 
         self.model = []
-        # AdaIN residual blocks
         # (256, 16, 16, 16) -> (256, 16, 16, 16)
         self.model += [ResBlocks(self.n_res, self.dim, res_norm, activ, pad_type=pad_type)]
         # upsampling blocks
@@ -96,7 +98,7 @@ class Decoder(nn.Module):
         self.model += [Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
         self.dim //= 2
         # (16, 128, 128, 128) -> (16, 95, 95, 95)
-        self.model += [Conv3dBlock(self.input_dim, self.dim, 34, 1, 0, norm='ln', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.dim, 34, 1, 0, norm='ln', activation=activ, pad_type=pad_type)]
         # (16, 95, 95, 95) -> (16, 190, 190, 190)
         self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
                        Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]

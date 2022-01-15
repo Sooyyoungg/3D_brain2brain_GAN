@@ -6,15 +6,12 @@ from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
 
 class GAN_3D(nn.Module):
-    def __init__(self, args, config, train_data, valid_data, epoch):
+    def __init__(self, args, config, epoch):
         super(GAN_3D, self).__init__()
         self.gpu = args.gpu
         self.mode = args.mode
         self.restore = args.restore
         self.config = config
-
-        self.train_data = train_data
-        self.valid_data = valid_data
         self.epoch = epoch
 
         # init networks
@@ -95,7 +92,9 @@ class GAN_3D(nn.Module):
         torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(self.step)))
 
     ### Train & Test functions
-    def train(self, **kwargs):
+    def train(self, train_data, valid_data):
+        self.train_data = train_data
+        self.valid_data = valid_data
         print("Start Training !!!")
         self.writer = SummaryWriter(self.config.log_dir)
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
@@ -176,3 +175,27 @@ class GAN_3D(nn.Module):
 
             print("======= The highest validation score! =======")
             print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.step, self.val_loss.cpu().numpy()))
+
+    def test(self, test_data):
+        self.test_data = test_data
+        with torch.no_grad():
+            for i, struct, dwi, grad in enumerate(self.train_data):
+
+                struct = struct.cuda()
+                dwi = dwi.cuda()
+                self.test_fake_dwi = self.G(struct)
+
+                """ Generator """
+                test_D_judge = self.D(self.test_fake_dwi)
+                self.test_G_loss = {'adv_fake': self.adv_criterion(test_D_judge, torch.ones_like(test_D_judge)),
+                                    'real_fake': self.img_criterion(self.test_fake_dwi, dwi)}
+                self.test_loss_G = sum(self.test_G_loss.values())
+
+                """ Discriminator """
+                test_D_j_real = self.D(struct)
+                test_D_j_fake = self.D(self.test_fake_dwi)
+                self.test_D_loss = {'adv_real': self.adv_criterion(test_D_j_real, torch.ones_like(test_D_j_real)),
+                                    'adv_fake': self.adv_criterion(test_D_j_fake, torch.zeros_like(test_D_j_fake))}
+                self.test_loss_D = sum(self.test_D_loss.values())
+
+            print('Test Results : loss_D: {:.6f}, loss_G: {:.6f}'.format(self.test_loss_D.data.cpu().numpy(), self.test_loss_G.data.cpu().numpy()))

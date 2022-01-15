@@ -72,7 +72,7 @@ for index, struct in enumerate(data_loader_train):
 
 ### model
 model = GAN_3D(args, config, data_loader_train, data_loader_val, config.epoch)
-model.train()
+model.train(,
 
 """### Generator & Discriminator
 # Initialize generator and discriminator

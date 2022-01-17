@@ -13,38 +13,51 @@ class Generator(nn.Module):
         self.generate.append(self.Decoder)
 
     def forward(self, struct_image):
+        # input: (batch_size, 2, 256, 256, 256)
         for code in self.generate:
-            gen_dwi = code(struct_image)
-        return gen_dwi
+            self.gen_dwi = code(struct_image)
+        # output: (batch_size, 1, 190, 190, 190)
+        return self.gen_dwi
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.Discriminate = nn.Sequential(
-            nn.Conv3d(1, 64, 4, 2, 1),
+            # (1, 190, 190, 190) -> (32, 95, 95, 95)
+            nn.Conv3d(1, 32, 4, 2, 1),
+            nn.BatchNorm3d(32),
+            nn.LeakyReLU(0.2),
+
+            # (32, 95, 95, 95) -> (64, 47, 47, 47)
+            nn.Conv3d(32, 64, 5, 2, 1),
             nn.BatchNorm3d(64),
             nn.LeakyReLU(0.2),
 
-            nn.Conv3d(64, 128, 4, 2, 1),
+            # (64, 47, 47, 47) -> (128, 23, 23, 23)
+            nn.Conv3d(64, 128, 5, 2, 1),
             nn.BatchNorm3d(128),
             nn.LeakyReLU(0.2),
 
-            nn.Conv3d(128, 256, 4, 2, 1),
-            nn.BatchNorm3d(256),
+            # (128, 23, 23, 23) -> (256, 11, 11, 11)
+            nn.Conv3d(128, 256, 5, 2, 1),
+            nn.BatchNorm3d(236),
             nn.LeakyReLU(0.2),
 
-            nn.Conv3d(256, 512, 4, 2, 1),
+            # (256, 11, 11, 11) -> (512, 5, 5, 5)
+            nn.Conv3d(256, 512, 5, 2, 1),
             nn.BatchNorm3d(512),
             nn.LeakyReLU(0.2),
 
-            nn.Conv3d(512, 1, 4, 2, 0),
+            # (512, 5, 5, 5) -> (1, 1, 1, 1)
+            nn.Conv3d(512, 1, 5, 2, 0),
             nn.Sigmoid()
         )
 
     def forward(self, dwi):
-        # dwi: (1, 190, 190, 190) ->
+        # input: (batch_size, 1, 190, 190, 190)
         result = self.Discriminate(dwi)
         print("discriminate result shape:", result.shape)
+        print("result:", result)
         return result.view(-1, result.size(1))
 
 

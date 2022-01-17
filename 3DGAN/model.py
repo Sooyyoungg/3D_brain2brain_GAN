@@ -6,7 +6,7 @@ from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
 
 class GAN_3D(nn.Module):
-    def __init__(self, args, config, epoch):
+    def __init__(self, args, dataset, config, epoch):
         super(GAN_3D, self).__init__()
         self.gpu = args.gpu
         self.mode = args.mode
@@ -14,6 +14,11 @@ class GAN_3D(nn.Module):
         self.config = config
         self.epoch = epoch
 
+        if len(dataset) > 1:
+            self.train_data = dataset[0]
+            self.valid_data = dataset[1]
+        else:
+            self.test_data = dataset
         # init networks
         self.G = Generator()
         self.D = Discriminator()
@@ -92,9 +97,7 @@ class GAN_3D(nn.Module):
         torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(self.step)))
 
     ### Train & Test functions
-    def train(self, train_data, valid_data):
-        self.train_data = train_data
-        self.valid_data = valid_data
+    def train(self, **kwargs):
         print("Start Training !!!")
         self.writer = SummaryWriter(self.config.log_dir)
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
@@ -110,9 +113,10 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, struct, dwi, grad in enumerate(self.train_data):
-                print(struct.shape)
-                print(dwi.shape)
+            for i, struct, dwi in enumerate(self.train_data):
+                if i == 0:
+                    print("Training structure mri shape: ", struct.shape)
+                    print("Training diffusion-weighted image shape: ", dwi.shape)
 
                 struct = struct.cuda()
                 dwi = dwi.cuda()
@@ -159,6 +163,7 @@ class GAN_3D(nn.Module):
         self.G.eval()
 
         val_losses = 0.0
+        v_i = 0
         for v_i, v_str, v_dwi, v_grad in enumerate(valid_data):
             v_fake_dwi = self.G(v_str)
             val_losses += self.img_criterion(v_fake_dwi, v_dwi)
@@ -170,17 +175,15 @@ class GAN_3D(nn.Module):
             self.val_loss = val_avg_loss
             # save model info & image
             self.save_log()
-            self.save_img(save_num=5)
+            self.save_img(save_num=3)
             self.save_model()
 
             print("======= The highest validation score! =======")
-            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.step, self.val_loss.cpu().numpy()))
+            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.step, self.val_loss))
 
-    def test(self, test_data):
-        self.test_data = test_data
+    def test(self):
         with torch.no_grad():
-            for i, struct, dwi, grad in enumerate(self.train_data):
-
+            for i, struct, dwi, grad in enumerate(self.test_data):
                 struct = struct.cuda()
                 dwi = dwi.cuda()
                 self.test_fake_dwi = self.G(struct)

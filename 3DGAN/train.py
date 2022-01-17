@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch
 
 from Config import Config
-from DataSplit_test import DataSplit_test
+from DataSplit import DataSplit
 from model import GAN_3D
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -53,9 +53,9 @@ test_N = len(test_csv)
 print(train_N, val_N, test_N)
 
 # split
-train_data = DataSplit_test(data_csv=train_csv, data_dir=config.data_dir, transform=False)
-val_data = DataSplit_test(data_csv=val_csv, data_dir=config.data_dir, transform=False)
-test_data = DataSplit_test(data_csv=test_csv, data_dir=config.data_dir, transform=False)
+train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, transform=None)
+val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, transform=None)
+test_data = DataSplit(data_csv=test_csv, data_dir=config.data_dir, transform=None)
 #s = train_data.__getitem__(0)
 
 # load
@@ -63,16 +63,17 @@ data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=args.batc
 data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
 data_loader_test = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
 
-for index, struct in enumerate(data_loader_train):
-    print(index, struct.shape)
-#train_iter = iter(data_loader_train)
+for index, struct , dwi in enumerate(data_loader_train):
+    print(index, struct.shape, dwi.shape)
+#train_iter = iter(data_loader_train)vv
 #st = train_iter.next()
 #print(type(st))   # <class 'torch.Tensor'>
 #print(st.size())  # torch.Size([64, 2, 256, 256, 256])
+print("Data Ready !!!")
 
 ### model
-model = GAN_3D(args, config, data_loader_train, data_loader_val, config.epoch)
-model.train(,
+#model = GAN_3D(args, [data_loader_train, data_loader_val], config, config.epoch)
+#model.train()
 
 """### Generator & Discriminator
 # Initialize generator and discriminator

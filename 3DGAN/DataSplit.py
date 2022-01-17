@@ -22,10 +22,11 @@ class DataSplit(Dataset):
         T2 = T2.reshape((1, 256, 256, 256))
         struct = np.concatenate([T1, T2], axis=0)               # (2, 256, 256, 256)
         dwi = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (103, 190, 190, 190)
-        grad = np.load(self.data_dir + '/' + sub + '.grad.b')
+        print(dwi.shape)
+        grad = open(self.data_dir + '/' + sub + '.grad.b', "w")
 
         if self.transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
 
-        return struct, dwi, grad
+        return struct, dwi #, grad

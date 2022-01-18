@@ -1,4 +1,3 @@
-### Basic
 import argparse
 import os
 import numpy as np
@@ -21,24 +20,21 @@ print(device)
 
 os.makedirs("Generated_images", exist_ok=True)
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
+"""parser = argparse.ArgumentParser()
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
-"""parser.add_argument("--img_size", type=int, default=256, help="size of each image dimension")
+parser.add_argument("--img_size", type=int, default=256, help="size of each image dimension")
 parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")"""
+parser.add_argument("--sample_interval", type=int, default=400, help="interval betwen image samples")
 parser.add_argument('-a', '--attribute', type=str, help='Specify category for training.')
 parser.add_argument('-g', '--gpu', default=[0], nargs='+', type=int, help='Specify GPU ids.')
 parser.add_argument('-r', '--restore', default=None, action='store', type=int, help='Specify checkpoint id to restore.')
 parser.add_argument('-m', '--mode', default='train', type=str, choices=['train', 'test'])
 
 args = parser.parse_args()
-print(args)
+print(args)"""
 
 ### Data Loader
 config = Config()
@@ -55,25 +51,23 @@ print(train_N, val_N, test_N)
 # split
 train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, transform=None)
 val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, transform=None)
-test_data = DataSplit(data_csv=test_csv, data_dir=config.data_dir, transform=None)
-#s = train_data.__getitem__(0)
+#s, d = train_data.__getitem__(1)
+#print(d.shape) # (103, 190, 190, 190)
 
 # load
-data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
-data_loader_test = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
 
-for index, struct , dwi in enumerate(data_loader_train):
-    print(index, struct.shape, dwi.shape)
-#train_iter = iter(data_loader_train)vv
+#for index, struct, dwi in enumerate(data_loader_train):
+#    print(index, struct.shape, dwi.shape)
+#train_iter = iter(data_loader_train)
 #st = train_iter.next()
 #print(type(st))   # <class 'torch.Tensor'>
 #print(st.size())  # torch.Size([64, 2, 256, 256, 256])
-print("Data Ready !!!")
 
 ### model
-#model = GAN_3D(args, [data_loader_train, data_loader_val], config, config.epoch)
-#model.train()
+model = GAN_3D([data_loader_train, data_loader_val], config)
+model.train()
 
 """### Generator & Discriminator
 # Initialize generator and discriminator
@@ -152,7 +146,4 @@ torch.save({
     'model_D_state_dict': discriminator.state_dict(),
     'optimizer_G_state_dict': optimizer_G.state_dict(),
     'optimizer_D_state_dict': optimizer_D.state_dict()}, 'model_weights.pth')
-
-### Testing
-# with torch.no_grad():
 """

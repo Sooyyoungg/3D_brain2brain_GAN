@@ -6,13 +6,13 @@ from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
 
 class GAN_3D(nn.Module):
-    def __init__(self, args, dataset, config, epoch):
+    def __init__(self, dataset, config):
         super(GAN_3D, self).__init__()
-        self.gpu = args.gpu
-        self.mode = args.mode
-        self.restore = args.restore
+        self.gpu = config.gpu
+        self.mode = config.mode
+        self.restore = config.restore
         self.config = config
-        self.epoch = epoch
+        self.epoch = config.epoch
 
         if len(dataset) > 1:
             self.train_data = dataset[0]
@@ -67,9 +67,9 @@ class GAN_3D(nn.Module):
                 assert os.path.exists(ckpt_file_D)
                 self.D.load_state_dict(torch.load(ckpt_file_D))
 
-            self.start_step = self.restore + 1
+            self.start_epoch = self.restore + 1
         else:
-            self.start_step = 1
+            self.start_epoch = 1
 
     def save_log(self):
         scalar_info = {
@@ -85,16 +85,16 @@ class GAN_3D(nn.Module):
             scalar_info['D_loss/' + key] = value
 
         for tag, value in scalar_info.items():
-            self.writer.add_scalar(tag, value, self.step)
+            self.writer.add_scalar(tag, value, self.epoch)
 
     def save_img(self, save_num=5):
         for i in range(save_num):
             mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-            sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(self.step, i)), mdict)
+            sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(self.epoch, i)), mdict)
 
     def save_model(self):
-        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:06d}.pth'.format(self.step)))
-        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(self.step)))
+        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:06d}.pth'.format(self.epoch)))
+        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(self.epoch)))
 
     ### Train & Test functions
     def train(self, **kwargs):
@@ -102,14 +102,14 @@ class GAN_3D(nn.Module):
         self.writer = SummaryWriter(self.config.log_dir)
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
         self.opt_D = torch.optim.Adam(self.D.parameters(), lr=self.config.D_lr, betas=(0.5, 0.999))
-        self.G_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_G, step_size=self.config.step_size, gamma=self.config.gamma)
-        self.D_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_D, step_size=self.config.step_size, gamma=self.config.gamma)
+        self.G_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_G, step_size=self.config.epoch, gamma=self.config.gamma)
+        self.D_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_D, step_size=self.config.epoch, gamma=self.config.gamma)
 
         self.val_loss = 0.0
 
         # start training
-        for epoch in range(self.start_step, 1 + self.epoch):
-            self.step = epoch
+        for epoch in range(self.start_epoch, 1 + self.epoch):
+            self.epoch = epoch
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
@@ -142,7 +142,7 @@ class GAN_3D(nn.Module):
                 self.loss_D.backward()
                 self.opt_D.step()
 
-            print('epoch: {:06d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.step, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+            print('epoch: {:06d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
 
             """ Validation """
             if epoch % 10 == 0:
@@ -179,7 +179,7 @@ class GAN_3D(nn.Module):
             self.save_model()
 
             print("======= The highest validation score! =======")
-            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.step, self.val_loss))
+            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
 
     def test(self):
         with torch.no_grad():

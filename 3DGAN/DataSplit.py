@@ -21,12 +21,13 @@ class DataSplit(Dataset):
         T1 = T1.reshape((1, 256, 256, 256))
         T2 = T2.reshape((1, 256, 256, 256))
         struct = np.concatenate([T1, T2], axis=0)               # (2, 256, 256, 256)
-        dwi = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (103, 190, 190, 190)
-        print(dwi.shape)
+        dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (190, 190, 190, 103)
+        dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))                   # (103, 190, 190, 190)
+        dwi = dwi_total[100, :, :, :]
         grad = open(self.data_dir + '/' + sub + '.grad.b', "w")
 
         if self.transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
 
-        return struct, dwi #, grad
+        return struct, dwi

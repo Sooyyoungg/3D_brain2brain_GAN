@@ -7,13 +7,13 @@ class Generator(nn.Module):
         self.Encoder = ResEncoder()
         self.Decoder = Decoder()
         self.generate = nn.ModuleList()
-        # struct: (2, 256, 256, 256) -> (256, 16, 16, 16)
+        # struct: (1, 190, 190, 190) -> (256, 16, 16, 16)
         self.generate.append(self.Encoder)
         # (256, 16, 16, 16) -> (1, 190, 190, 190)
         self.generate.append(self.Decoder)
 
     def forward(self, struct_image):
-        # input: (batch_size, 2, 256, 256, 256)
+        # input: (batch_size, 1, 190, 190, 190)
         for code in self.generate:
             self.gen_dwi = code(struct_image)
         # output: (batch_size, 1, 190, 190, 190)
@@ -71,7 +71,7 @@ class ResEncoder(nn.Module):
         self.n_res = 4
 
         self.model = []
-        # (2, 256, 256, 256) -> (16, 256, 256, 256)
+        # (1, 256, 256, 256) -> (16, 256, 256, 256)
         self.model += [Conv3dBlock(self.input_dim, self.dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         # downsampling blocks : image size 절반으로 줄어듦
         # (16, 256, 256, 256) -> (32, 128, 128, 128) -> (64, 64, 64, 64) -> (128, 32, 32, 32) -> (256, 16, 16, 16)

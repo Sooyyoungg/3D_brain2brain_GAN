@@ -38,21 +38,22 @@ print(args)"""
 
 ### Data Loader
 config = Config()
-train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/qc_train.csv', header=None)
-val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/qc_val.csv', header=None)
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/qc_test.csv', header=None)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_train.csv', header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_val.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_test.csv', header=None)
 
 train_N = len(train_csv)
 val_N = len(val_csv)
 test_N = len(test_csv)
-# 1225 735 245 245 > sample data
+# sample data: 756 108 215
 print(train_N, val_N, test_N)
 
 # split
 train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, transform=None)
 val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, transform=None)
-#s, d = train_data.__getitem__(1)
+#d, g = train_data.__getitem__(1)
 #print(d.shape) # (103, 190, 190, 190)
+#print(g.shape) # (103, 4)
 
 # load
 data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)

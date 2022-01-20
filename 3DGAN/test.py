@@ -36,7 +36,7 @@ print(args)
 
 ### Data Loader
 config = Config()
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/qc_test.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_test.csv', header=None)
 test_N = len(test_csv)
 # 1225 735 245 245 > sample data
 #print(train_N, val_N, test_N)

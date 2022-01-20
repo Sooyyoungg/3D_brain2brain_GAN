@@ -13,18 +13,27 @@ class GAN_3D(nn.Module):
         self.restore = config.restore
         self.config = config
         self.epoch = config.epoch
+        print("model in!")
 
         if len(dataset) > 1:
             self.train_data = dataset[0]
             self.valid_data = dataset[1]
+            train_iter = iter(self.train_data)
+            dwi, grad = train_iter.next()
+            print(type(dwi))   # <class 'torch.Tensor'>
+            print(dwi.size())  #
+            print(grad.size()) #
         else:
             self.test_data = dataset
+
         # init networks
         self.G = Generator()
         self.D = Discriminator()
 
         self.adv_criterion = torch.nn.BCELoss()
         self.img_criterion = torch.nn.L1Loss()
+        # Gradient Penalty loss
+        #self.gp_criterion = torch.
 
         self.set_mode_and_gpu()
         self.restore_from_file()

@@ -15,6 +15,7 @@ class GAN_3D(nn.Module):
         self.epoch = config.epoch
         print("model in!")
 
+        print(len(dataset))
         if len(dataset) > 1:
             self.train_data = dataset[0]
             self.valid_data = dataset[1]

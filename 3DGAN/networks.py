@@ -47,18 +47,23 @@ class Discriminator(nn.Module):
             nn.Conv3d(256, 512, 5, 2, 1),
             nn.BatchNorm3d(512),
             nn.LeakyReLU(0.2),
-
+        )
+        self.LinSigmoid = nn.Sequential(
             # (512, 5, 5, 5) -> (1, 1, 1, 1)
-            nn.Conv3d(512, 1, 5, 2, 0),
+            # nn.Conv3d(512, 1, 5, 2, 0),
+            nn.Linear(512 * 5 * 5 * 5, 1),
             nn.Sigmoid()
         )
 
     def forward(self, dwi):
         # input: (batch_size, 1, 190, 190, 190)
         result = self.Discriminate(dwi)
+        result = result.view(-1, 512 * 5 * 5 * 5)
+        result = self.LinSigmoid(result)
+
         print("discriminate result shape:", result.shape)
         print("result:", result)
-        return result.view(-1, result.size(1))
+        return result
 
 
 ####################### Encoder & Decoder #######################
@@ -71,15 +76,15 @@ class ResEncoder(nn.Module):
         self.n_res = 4
 
         self.model = []
-        # (1, 256, 256, 256) -> (16, 256, 256, 256)
+        # (1, 128, 128, 128) -> (16, 128, 128, 128)
         self.model += [Conv3dBlock(self.input_dim, self.dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         # downsampling blocks : image size 절반으로 줄어듦
-        # (16, 256, 256, 256) -> (32, 128, 128, 128) -> (64, 64, 64, 64) -> (128, 32, 32, 32) -> (256, 16, 16, 16)
+        # (16, 128, 128, 128) -> (32, 64, 64, 64) -> (64, 32, 32, 32) -> (128, 16, 16, 16) -> (256, 8, 8, 8)
         for i in range(self.n_downsample):
             self.model += [Conv3dBlock(self.dim, 2 * self.dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             self.dim *= 2
         # residual blocks (self.dim = 16)
-        # (256, 16, 16, 16) -> (256, 16, 16, 16)
+        # (256, 8, 8, 8) -> (256, 8, 8, 8)
         self.model += [ResBlocks(self.n_res, self.dim, norm=norm, activation=activ, pad_type=pad_type)]
 
         self.model = nn.Sequential(*self.model)
@@ -99,25 +104,26 @@ class Decoder(nn.Module):
         self.n_res = 4
 
         self.model = []
-        # (256, 16, 16, 16) -> (256, 16, 16, 16)
+        # (256, 8, 8, 8) -> (256, 8, 8, 8)
         self.model += [ResBlocks(self.n_res, self.dim, res_norm, activ, pad_type=pad_type)]
         # upsampling blocks
-        # (256, 16, 16, 16) -> (128, 32, 32, 32) -> (64, 64, 64, 64) -> (32, 128, 128, 128)
+        # (256, 8, 8, 8) -> (128, 16, 16, 16) -> (64, 32, 32, 32) -> (32, 64, 64, 64)
         for i in range(self.n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
                            Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
             self.dim //= 2
-        # (32, 128, 128, 128) -> (16, 128, 128, 128)
+        # (32, 64, 64, 64) -> (16, 64, 64, 64)
         self.model += [Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
         self.dim //= 2
-        # (16, 128, 128, 128) -> (16, 95, 95, 95)
-        self.model += [Conv3dBlock(self.dim, self.dim, 34, 1, 0, norm='ln', activation=activ, pad_type=pad_type)]
-        # (16, 95, 95, 95) -> (16, 190, 190, 190)
+        # (16, 64, 64, 64) -> (16, 64, 64, 64)
+        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation=activ, pad_type=pad_type)]
+        # (16, 64, 64, 64) -> (16, 128, 128, 128)
         self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
                        Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
         # use reflection padding in the last conv layer
-        # (16, 190, 190, 190) -> (1, 190, 190, 190)
+        # (16, 128, 128, 128) -> (1, 128, 128, 128)
         self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
+        self.model += [nn.Tanh()]
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):

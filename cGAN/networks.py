@@ -12,10 +12,12 @@ class Generator(nn.Module):
         # (256, 16, 16, 16) -> (1, 190, 190, 190)
         self.generate.append(self.Decoder)
 
-    def forward(self, struct_image):
-        # input: (batch_size, 1, 190, 190, 190)
-        for code in self.generate:
-            self.gen_dwi = code(struct_image)
+    def forward(self, struct_image, gradient):
+        # input structure image: (batch_size, 1, 190, 190, 190)
+        gen_latent = self.generate[0](struct_image)
+        self.gen_dwi = self.generate[1](gen_latent, gradient)
+        """for code in self.generate:
+            self.gen_dwi = code(struct_image, gradient)"""
         # output: (batch_size, 1, 190, 190, 190)
         return self.gen_dwi
 
@@ -126,6 +128,6 @@ class Decoder(nn.Module):
         self.model += [nn.Tanh()]
         self.model = nn.Sequential(*self.model)
 
-    def forward(self, x):
+    def forward(self, x, gradient):
         print("Decoder output dim: ", x.shape)
         return self.model(x)

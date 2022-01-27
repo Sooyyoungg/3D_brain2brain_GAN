@@ -13,8 +13,8 @@ import torch.nn.functional as F
 import torch
 
 from Config import Config
-from DataSplit_test import DataSplit_test
-from model import GAN_3D
+from DataSplit import DataSplit
+from model import I2I_cGAN
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -42,9 +42,9 @@ test_N = len(test_csv)
 #print(train_N, val_N, test_N)
 
 # split
-test_data = DataSplit_test(data_csv=test_csv, data_dir=config.data_dir, transform=False)
+test_data = DataSplit(data_csv=test_csv, data_dir=config.data_dir, transform=False)
 data_loader_test = torch.utils.data.DataLoader(test_data, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=False)
 
 ### model
-model = GAN_3D(args, config, data_loader_test, config.epoch)
+model = I2I_cGAN(args, config, data_loader_test, config.epoch)
 model.test()

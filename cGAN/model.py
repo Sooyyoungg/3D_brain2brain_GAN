@@ -5,9 +5,9 @@ import scipy.io as sio
 from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
 
-class GAN_3D(nn.Module):
+class I2I_cGAN(nn.Module):
     def __init__(self, dataset, config):
-        super(GAN_3D, self).__init__()
+        super(I2I_cGAN, self).__init__()
         self.gpu = config.gpu
         self.mode = config.mode
         self.restore = config.restore

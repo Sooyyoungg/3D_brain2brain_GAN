@@ -10,6 +10,7 @@ class DataSplit(Dataset):
         self.data_csv = data_csv
         self.data_dir = data_dir
         self.do_transform = do_transform
+        self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
 
         self.count = 0
 
@@ -28,12 +29,10 @@ class DataSplit(Dataset):
             self.count += 1
 
         struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
-        struct = struct.reshape((1, 64, 64, 64))
 
         dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (64, 64, 64, 103)
         dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))             # (103, 64, 64, 64)
         dwi = dwi_total[index % 103, :, :, :]
-        dwi = dwi.reshape((1, 64, 64, 64))
 
         grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
         # change grad file into numpy
@@ -47,8 +46,11 @@ class DataSplit(Dataset):
         grad = grad_total[index % 103]
 
         if self.do_transform is not None:
-            struct = torch.Tensor(struct)
-            dwi = torch.Tensor(dwi)
-            grad = torch.Tensor(grad)
+            struct = self.transform(struct)
+            dwi = self.transform(dwi)
+            #grad = self.transform(grad)
+
+        struct = struct.reshape((1, 64, 64, 64))
+        dwi = dwi.reshape((1, 64, 64, 64))
 
         return struct, dwi, grad

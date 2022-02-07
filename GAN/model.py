@@ -128,16 +128,18 @@ class GAN_3D(nn.Module):
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
-                struct = struct.cuda()
-                dwi = dwi.cuda()
+                struct = struct.cuda().float()
+                dwi = dwi.cuda().float()
                 self.fake_dwi = self.G(struct)
 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
-                self.loss_G = F.normalize(sum(self.G_loss.values()))
-                print(self.loss_G)
+                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
+                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
+                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
+                #print(self.G_loss)
+                self.loss_G = sum(self.G_loss.values()) / 2
+                #print(self.loss_G)
                 self.opt_G.zero_grad()
                 self.loss_G.backward()
                 self.opt_G.step()
@@ -147,7 +149,7 @@ class GAN_3D(nn.Module):
                 D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
-                self.loss_D = F.normalize(sum(self.D_loss.values()))
+                self.loss_D = sum(self.D_loss.values()) / 2
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()

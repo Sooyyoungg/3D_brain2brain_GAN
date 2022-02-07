@@ -50,6 +50,7 @@ class Discriminator(nn.Module):
 
     def forward(self, dwi):
         # input: (batch_size, 1, 64, 64, 64)
+        print("Discriminator input shape: ", dwi.shape)
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
         result = self.LinSigmoid(result)
@@ -84,8 +85,8 @@ class ResEncoder(nn.Module):
         self.output_dim = self.dim
 
     def forward(self, x):
-        print("output channel: ", self.output_dim)
-        print("Encoder output dim: ", x.shape)
+        #print("output channel: ", self.output_dim)
+        print("Generator - Encoder output dim: ", x.shape)
         return self.model(x)
 
 class Decoder(nn.Module):
@@ -116,5 +117,5 @@ class Decoder(nn.Module):
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):
-        print("Decoder output dim: ", x.shape)
+        print("Generator - Decoder output dim: ", x.shape)
         return self.model(x)

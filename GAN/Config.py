@@ -13,7 +13,7 @@ class Config:
     G_lr = 2.5e-3
     D_lr = 1e-5
     epoch = 2000
-    batch_size = 4
+    batch_size = 32
 
     gamma = 0.95
     shuffle = True

@@ -40,7 +40,7 @@ class Discriminator(nn.Module):
 
             # (128, 8, 8, 8) -> (256, 4, 4, 4)
             nn.Conv3d(128, 256, 4, 2, 1),
-            nn.BatchNorm3d(236),
+            nn.BatchNorm3d(256),
             nn.LeakyReLU(0.2),
         )
         self.LinSigmoid = nn.Sequential(
@@ -49,14 +49,15 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, dwi):
-        # input: (batch_size, 1, 64, 64, 64)
-        print("Discriminator input shape: ", dwi.shape)
+        # input: torch.Size([batch_size, 1, 64, 64, 64])
+        #print("Discriminator input shape: ", dwi.shape)
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
         result = self.LinSigmoid(result)
 
-        print("discriminate result shape:", result.shape)
-        print("result:", result)
+        # output: torch.Size([batch_size, 1])
+        #print("Discriminator result shape:", result.shape)
+        #print("result:", result)
         return result
 
 
@@ -86,7 +87,8 @@ class ResEncoder(nn.Module):
 
     def forward(self, x):
         #print("output channel: ", self.output_dim)
-        print("Generator - Encoder output dim: ", x.shape)
+        # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
+        #print("Generator - Encoder output dim: ", x.shape)
         return self.model(x)
 
 class Decoder(nn.Module):
@@ -117,5 +119,6 @@ class Decoder(nn.Module):
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):
-        print("Generator - Decoder output dim: ", x.shape)
+        # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
+        #print("Generator - Decoder output dim: ", x.shape)
         return self.model(x)

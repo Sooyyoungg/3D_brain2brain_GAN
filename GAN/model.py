@@ -1,6 +1,7 @@
 import os
 import torch
 from torch import nn
+import torch.nn.functional as F
 import scipy.io as sio
 from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
@@ -108,7 +109,6 @@ class GAN_3D(nn.Module):
 
     ### Train & Test functions
     def train(self, **kwargs):
-        print("Start Training !!!")
         self.writer = SummaryWriter(self.config.log_dir)
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
         self.opt_D = torch.optim.Adam(self.D.parameters(), lr=self.config.D_lr, betas=(0.5, 0.999))
@@ -136,18 +136,18 @@ class GAN_3D(nn.Module):
                 D_judge = self.D(self.fake_dwi)
                 self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
                                'real_fake': self.img_criterion(self.fake_dwi, dwi)}
-                self.loss_G = sum(self.G_loss.values())
+                self.loss_G = F.normalize(sum(self.G_loss.values()))
+                print(self.loss_G)
                 self.opt_G.zero_grad()
-                self.loss_G .backward()
+                self.loss_G.backward()
                 self.opt_G.step()
 
                 """ Discriminator """
                 D_j_real = self.D(struct)
-                D_j_fake = self.D(self.fake_dwi)
+                D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
-                self.loss_D = sum(self.D_loss.values())
-
+                self.loss_D = F.normalize(sum(self.D_loss.values()))
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()
@@ -170,26 +170,27 @@ class GAN_3D(nn.Module):
         self.writer.close()
 
     def valid(self, valid_data):
-        self.G.eval()
+        with torch.no_grad():
+            self.G.eval()
 
-        val_losses = 0.0
-        v_i = 0
-        for v_i, v_str, v_dwi, v_grad in enumerate(valid_data):
-            v_fake_dwi = self.G(v_str)
-            val_losses += self.img_criterion(v_fake_dwi, v_dwi)
-        val_avg_loss = val_losses / float(v_i + 1.0)
+            val_losses = 0.0
+            v_i = 0
+            for v_i, v_str, v_dwi, v_grad in enumerate(valid_data):
+                v_fake_dwi = self.G(v_str)
+                val_losses += self.img_criterion(v_fake_dwi, v_dwi)
+            val_avg_loss = val_losses / float(v_i + 1.0)
 
-        # If valid loss has the highest score,
-        if val_avg_loss > self.val_loss:
-            # save loss value
-            self.val_loss = val_avg_loss
-            # save model info & image
-            self.save_log()
-            self.save_img(save_num=3)
-            self.save_model()
+            # If valid loss has the highest score,
+            if val_avg_loss > self.val_loss:
+                # save loss value
+                self.val_loss = val_avg_loss
+                # save model info & image
+                self.save_log()
+                self.save_img(save_num=3)
+                self.save_model()
 
-            print("======= The highest validation score! =======")
-            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
+                print("======= The highest validation score! =======")
+                print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
 
     def test(self):
         with torch.no_grad():

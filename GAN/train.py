@@ -66,7 +66,7 @@ val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=Tr
 data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
 data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
 
-# 824 116
+# 412 58
 print(len(data_loader_train), len(data_loader_val))
 
 #for index, (struct, dwi, grad) in enumerate(data_loader_train):

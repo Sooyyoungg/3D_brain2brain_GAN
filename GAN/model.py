@@ -13,18 +13,18 @@ class GAN_3D(nn.Module):
         self.restore = config.restore
         self.config = config
         self.epoch = config.epoch
-        print("model in!")
 
-        print(len(dataset))
         if len(dataset) > 1:
+            print("Training Start!")
             self.train_data = dataset[0]
             self.valid_data = dataset[1]
-            train_iter = iter(self.train_data)
-            dwi, grad = train_iter.next()
-            print(type(dwi))   # <class 'torch.Tensor'>
-            print(dwi.size())  #
-            print(grad.size()) #
+            #train_iter = iter(self.train_data)
+            #struct, dwi, grad = train_iter.next()
+            #print(type(dwi))   # <class 'torch.Tensor'>
+            #print(dwi.size())  # torch.Size([16, 1, 64, 64, 64])
+            #print(grad.size()) # torch.Size([16, 4])
         else:
+            print("Testing Start!")
             self.test_data = dataset
 
         # init networks
@@ -123,7 +123,7 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, struct, dwi in enumerate(self.train_data):
+            for i, (struct, dwi, grad) in enumerate(self.train_data):
                 if i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
@@ -193,7 +193,7 @@ class GAN_3D(nn.Module):
 
     def test(self):
         with torch.no_grad():
-            for i, struct, dwi, grad in enumerate(self.test_data):
+            for i, (struct, dwi, grad) in enumerate(self.test_data):
                 struct = struct.cuda()
                 dwi = dwi.cuda()
                 self.test_fake_dwi = self.G(struct)

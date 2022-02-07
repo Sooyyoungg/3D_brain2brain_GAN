@@ -38,33 +38,44 @@ print(args)"""
 
 ### Data Loader
 config = Config()
-train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_train.csv', header=None)
-val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_val.csv', header=None)
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_test.csv', header=None)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 
 train_N = len(train_csv)
 val_N = len(val_csv)
 test_N = len(test_csv)
-# sample data: 756 108 215
+# sample data: 128 18 36
 print(train_N, val_N, test_N)
 
 # split
-train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, transform=None)
-val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, transform=None)
-#d, g = train_data.__getitem__(1)
-#print(d.shape) # (103, 190, 190, 190)
-#print(g.shape) # (103, 4)
+train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, do_transform=True)
+val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=True)
+#s, d, g = train_data.__getitem__(1)
+#print(g)
+#print(d.shape, g.shape)
+
+#ss, dd, gg = train_data.__getitem__(700)
+#print(gg)
+#print(dd.shape, gg.shape)
+
+# 13184 1854
+#print(train_data.__len__(), val_data.__len__())
 
 # load
 data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
 data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=True, num_workers=0, pin_memory=False)
 
-#for index, struct, dwi in enumerate(data_loader_train):
-#    print(index, struct.shape, dwi.shape)
+# 824 116
+print(len(data_loader_train), len(data_loader_val))
+
+#for index, (struct, dwi, grad) in enumerate(data_loader_train):
+    # torch.Size([16, 64, 64, 64]) torch.Size([16, 64, 64, 64]) torch.Size([16, 4])
+#    print(index, struct.shape, dwi.shape, grad.shape)
 #train_iter = iter(data_loader_train)
-#st = train_iter.next()
+#st, dwi, grad = train_iter.next()
 #print(type(st))   # <class 'torch.Tensor'>
-#print(st.size())  # torch.Size([64, 2, 256, 256, 256])
+#print(st.size(), dwi.size(), grad.size())  #torch.Size([16, 64, 64, 64]) torch.Size([16, 64, 64, 64]) torch.Size([16, 4])
 
 ### model
 model = GAN_3D([data_loader_train, data_loader_val], config)

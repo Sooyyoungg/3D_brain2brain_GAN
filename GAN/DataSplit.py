@@ -10,7 +10,7 @@ class DataSplit(Dataset):
         self.data_csv = data_csv
         self.data_dir = data_dir
         self.do_transform = do_transform
-        self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
         self.count = 0
 
@@ -28,12 +28,24 @@ class DataSplit(Dataset):
         if index != 0 and index % 103 == 0:
             self.count += 1
 
+        ### Structure & diffusion-weighted image
         struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
 
         dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (64, 64, 64, 103)
         dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))             # (103, 64, 64, 64)
         dwi = dwi_total[index % 103, :, :, :]
 
+        ### Normalize voxel intensity
+        if np.min(struct) < 0:
+            struct = (struct - np.min(struct)) / (np.max(struct) - np.min(struct))
+        else:
+            struct = (struct + np.min(struct)) / (np.max(struct) + np.min(struct))
+        if np.min(dwi) < 0:
+            dwi = (dwi - np.min(dwi)) / (np.max(dwi) - np.min(dwi))
+        else:
+            dwi = (dwi + np.min(dwi)) / (np.max(dwi) + np.min(dwi))
+
+        ### Gradient
         grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
         # change grad file into numpy
         grad_list = grad_file.split('\n')
@@ -45,6 +57,7 @@ class DataSplit(Dataset):
         grad_total = np.array(gg)
         grad = grad_total[index % 103]
 
+        ### Transform
         if self.do_transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)

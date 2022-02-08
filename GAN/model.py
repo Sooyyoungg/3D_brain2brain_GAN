@@ -9,11 +9,12 @@ from networks import Generator, Discriminator
 class GAN_3D(nn.Module):
     def __init__(self, dataset, config):
         super(GAN_3D, self).__init__()
+        self.config = config
         self.gpu = config.gpu
         self.mode = config.mode
         self.restore = config.restore
-        self.config = config
         self.epoch = config.epoch
+        self.batch_size = config.batch_size
 
         if len(dataset) > 1:
             print("Training Start!")
@@ -133,13 +134,15 @@ class GAN_3D(nn.Module):
                 self.fake_dwi = self.G(struct)
 
                 """ Generator """
-                D_judge = self.D(self.fake_dwi)
+                D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
+                print(type(D_judge[0].item()))
+                if type(D_judge[0].item()) != float:
+                    print("hi")
+                    print(self.fake_dwi)
                 self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
                 #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
                 #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
-                #print(self.G_loss)
-                self.loss_G = sum(self.G_loss.values()) / 2
-                #print(self.loss_G)
+                self.loss_G = sum(self.G_loss.values())
                 self.opt_G.zero_grad()
                 self.loss_G.backward()
                 self.opt_G.step()

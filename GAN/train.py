@@ -80,6 +80,9 @@ print(len(data_loader_train), len(data_loader_val))
 ### model
 model = GAN_3D([data_loader_train, data_loader_val], config)
 model.train()
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 """### Generator & Discriminator
 # Initialize generator and discriminator

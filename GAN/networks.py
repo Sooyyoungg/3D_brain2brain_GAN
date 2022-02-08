@@ -115,7 +115,7 @@ class Decoder(nn.Module):
         # use reflection padding in the last conv layer
         # (8, 64, 64, 64) -> (1, 64, 64, 64)
         self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
-        self.model += [nn.Tanh()]
+        self.model += [nn.Sigmoid()]
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):

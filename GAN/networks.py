@@ -1,4 +1,6 @@
+import torch
 import torch.nn as nn
+from numpy import inf
 from Blocks import  Conv3dBlock, ResBlocks
 
 class Generator(nn.Module):
@@ -89,7 +91,13 @@ class ResEncoder(nn.Module):
         #print("output channel: ", self.output_dim)
         # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
         #print("Generator - Encoder output dim: ", x.shape)
-        return self.model(x)
+        #print(torch.isnan(x).any())
+        output = self.model(x)
+        #print(torch.isnan(output).any())
+        if inf in output or -inf in output:
+            output[output==-inf] = 0
+            output[output==inf] = 1
+        return output
 
 class Decoder(nn.Module):
     def __init__(self, res_norm='none', activ='tanh', pad_type='zero'):
@@ -121,4 +129,11 @@ class Decoder(nn.Module):
     def forward(self, x):
         # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
         #print("Generator - Decoder output dim: ", x.shape)
-        return self.model(x)
+        if -inf in x or inf in x:
+            print("inf in x")
+        output = self.model(x)
+        print(torch.isnan(output).any())
+        if -inf in output or inf in output:
+            output[output==-inf] = 0
+            output[output==inf] = 1
+        return output

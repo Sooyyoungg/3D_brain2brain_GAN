@@ -94,9 +94,17 @@ class ResEncoder(nn.Module):
         #print(torch.isnan(x).any())
         output = self.model(x)
         #print(torch.isnan(output).any())
+        if torch.isnan(output).any():
+            print(torch.isnan(x).any())
         if inf in output or -inf in output:
-            output[output==-inf] = 0
-            output[output==inf] = 1
+            print(output.sort().values)
+            """sort_arr, index = torch.sort(output, 0)
+            print(sort_arr.shape, output.min, )
+            print(sort_arr)"""
+            output[output == -inf] = torch.min(output)
+            output[output == inf] = torch.max(output)
+        if inf in output or -inf in output or torch.isnan(output).any():
+            print("yes")
         return output
 
 class Decoder(nn.Module):
@@ -129,11 +137,9 @@ class Decoder(nn.Module):
     def forward(self, x):
         # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
         #print("Generator - Decoder output dim: ", x.shape)
-        if -inf in x or inf in x:
-            print("inf in x")
         output = self.model(x)
-        print(torch.isnan(output).any())
+        print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
         if -inf in output or inf in output:
-            output[output==-inf] = 0
-            output[output==inf] = 1
+            output[output==-inf] = torch.min(output)
+            output[output==inf] = torch.max(output)
         return output

@@ -51,8 +51,9 @@ print(train_N, val_N, test_N)
 # split
 train_data = DataSplit(data_csv=train_csv, data_dir=config.data_dir, do_transform=True)
 val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=True)
-#s, d, g = train_data.__getitem__(1)
-#print(g)
+s, d, g = train_data.__getitem__(1)
+print(torch.min(s), torch.max(s))
+print(torch.min(d), torch.max(d))
 #print(d.shape, g.shape)
 
 #ss, dd, gg = train_data.__getitem__(700)
@@ -78,8 +79,8 @@ print(len(data_loader_train), len(data_loader_val))
 #print(st.size(), dwi.size(), grad.size())  #torch.Size([16, 64, 64, 64]) torch.Size([16, 64, 64, 64]) torch.Size([16, 4])
 
 ### model
-model = GAN_3D([data_loader_train, data_loader_val], config)
-model.train()
+#model = GAN_3D([data_loader_train, data_loader_val], config)
+#model.train()
 import os
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"

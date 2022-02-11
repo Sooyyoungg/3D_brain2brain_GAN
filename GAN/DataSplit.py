@@ -22,11 +22,18 @@ class DataSplit(Dataset):
         return len(self.data_csv) * 103
 
     def __getitem__(self, index):
+        # new epoch
+        if index == 0:
+            self.idx_c = 0
+            self.count = 0
+        # new subject
         if self.idx_c != 0 and self.idx_c % 103 == 0:
             self.count += 1
-        if index == 0:
-            self.count = 0
-        sub = self.data_csv.iloc[self.count][1]
+        try:
+            sub = self.data_csv.iloc[self.count][1]
+        except:
+            print(self.count, self.idx_c, index)
+
         #if self.idx_c % 32 == 0:
             #print("index: ", self.idx_c)
             #print("count: ", self.count)

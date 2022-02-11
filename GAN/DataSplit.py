@@ -11,19 +11,25 @@ class DataSplit(Dataset):
         self.data_csv = data_csv
         self.data_dir = data_dir
         self.do_transform = do_transform
-        scale_transform = ScaleIntensity(minv=0.0, maxv=1.0)
         normal_transform = NormalizeIntensity(subtrahend=0.5, divisor=0.5, nonzero=False)
-        self.transform = transforms.Compose([scale_transform, transforms.ToTensor()])
+        scale_transform = ScaleIntensity(minv=0.0, maxv=1.0)
+        self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
         self.count = 0
+        self.idx_c = 0
 
     def __len__(self):
         return len(self.data_csv) * 103
 
     def __getitem__(self, index):
-        sub = self.data_csv.iloc[self.count][1]
-        if index != 0 and index % 103 == 0:
+        if self.idx_c != 0 and self.idx_c % 103 == 0:
             self.count += 1
+        if index == 0:
+            self.count = 0
+        sub = self.data_csv.iloc[self.count][1]
+        #if self.idx_c % 32 == 0:
+            #print("index: ", self.idx_c)
+            #print("count: ", self.count)
 
         ### Structure & diffusion-weighted image
         struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
@@ -55,5 +61,7 @@ class DataSplit(Dataset):
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
+
+        self.idx_c += 1
 
         return struct, dwi, grad

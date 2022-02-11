@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class ResBlock(nn.Module):
-    def __init__(self, dim, norm='in', activation='relu', pad_type='zero'):
+    def __init__(self, dim, norm='none', activation='relu', pad_type='zero'):
         super(ResBlock, self).__init__()
 
         model = []
@@ -17,7 +17,7 @@ class ResBlock(nn.Module):
         return out
 
 class ResBlocks(nn.Module):
-    def __init__(self, num_blocks, dim, norm='in', activation='relu', pad_type='zero'):
+    def __init__(self, num_blocks, dim, norm='none', activation='relu', pad_type='zero'):
         super(ResBlocks, self).__init__()
 
         self.model = []

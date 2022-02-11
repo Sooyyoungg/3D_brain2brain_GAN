@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -118,14 +119,15 @@ class GAN_3D(nn.Module):
 
         self.val_loss = 0.0
 
+        start_time = time.time()
         # start training
         for epoch in range(self.start_epoch, 1 + self.epoch):
-            self.epoch = epoch
+            epoch_time = time.time()
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, (struct, dwi, grad) in enumerate(self.train_data):
-                if i == 0:
+            for batch_count, (struct, dwi, grad) in enumerate(self.train_data):
+                if batch_count == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
@@ -150,12 +152,16 @@ class GAN_3D(nn.Module):
                 D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
-                self.loss_D = sum(self.D_loss.values()) / 2
+                self.loss_D = sum(self.D_loss.values())
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()
 
-            print('epoch: {:06d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+                if batch_count % 100 == 0:
+                    print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+                batch_count += 1
+            print('Time for 1 epoch: ', time.time() - epoch_time)
+
 
             """ Validation """
             if epoch % 10 == 0:
@@ -170,6 +176,7 @@ class GAN_3D(nn.Module):
                 self.save_model()"""
 
         print('Finish training !!!')
+        print('Total Training Time: ', time.time() - start_time)
         self.writer.close()
 
     def valid(self, valid_data):

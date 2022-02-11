@@ -70,7 +70,7 @@ class ResEncoder(nn.Module):
         self.input_dim = 1
         self.dim = 8
         self.n_downsample = 4
-        self.n_res = 128
+        self.n_res = 2
 
         self.model = []
         # (1, 64, 64, 64) -> (8, 64, 64, 64)
@@ -93,18 +93,17 @@ class ResEncoder(nn.Module):
         #print("Generator - Encoder output dim: ", x.shape)
         #print(torch.isnan(x).any())
         output = self.model(x)
-        #print(torch.isnan(output).any())
-        if torch.isnan(output).any():
-            print(torch.isnan(x).any())
+        #print(torch.isnan(output).any()
+        """if inf in output or -inf in output:
+            out_copy = output.clone().detach()
+            out_copy[output == -inf] = inf
+            output[output == -inf] = torch.min(out_copy)
+            out_copy[output == inf] = -inf
+            output[output == inf] = torch.max(out_copy)"""
         if inf in output or -inf in output:
-            print(output.sort().values)
-            """sort_arr, index = torch.sort(output, 0)
-            print(sort_arr.shape, output.min, )
-            print(sort_arr)"""
-            output[output == -inf] = torch.min(output)
-            output[output == inf] = torch.max(output)
-        if inf in output or -inf in output or torch.isnan(output).any():
-            print("yes")
+            print("inf yes", torch.min(output), torch.max(output))
+        if torch.isnan(output).any():
+            print("nan yes")
         return output
 
 class Decoder(nn.Module):
@@ -115,7 +114,7 @@ class Decoder(nn.Module):
         self.output_dim = 1
         self.dim = 128
         self.n_upsample = 4
-        self.n_res = 128
+        self.n_res = 2
 
         self.model = []
         # (128, 4, 4, 4) -> (128, 4, 4, 4)
@@ -138,8 +137,9 @@ class Decoder(nn.Module):
         # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
         #print("Generator - Decoder output dim: ", x.shape)
         output = self.model(x)
-        print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
-        if -inf in output or inf in output:
-            output[output==-inf] = torch.min(output)
-            output[output==inf] = torch.max(output)
+        #print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
+        if inf in output or -inf in output:
+            print("inf yes", torch.min(output), torch.max(output))
+        if torch.isnan(output).any():
+            print("nan yes")
         return output

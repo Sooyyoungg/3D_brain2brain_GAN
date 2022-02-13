@@ -10,6 +10,8 @@ class DataSplit(Dataset):
 
         self.data_csv = data_csv
         self.data_dir = data_dir
+        self.data_num = len(data_csv)
+
         self.do_transform = do_transform
         normal_transform = NormalizeIntensity(subtrahend=0.5, divisor=0.5, nonzero=False)
         scale_transform = ScaleIntensity(minv=0.0, maxv=1.0)
@@ -22,21 +24,24 @@ class DataSplit(Dataset):
         return len(self.data_csv) * 103
 
     def __getitem__(self, index):
-        # new epoch
-        if index == 0:
-            self.idx_c = 0
+        """# new epoch (for new epoch, check whether idx_c value is 0 or not)
+        if self.idx_c == 0:
             self.count = 0
         # new subject
-        if self.idx_c != 0 and self.idx_c % 103 == 0:
+        if self.idx_c != 0 and self.idx_c == self.data_num:
             self.count += 1
+            self.idx_c = 0
+        print(index, self.idx_c)"""
+        if index == 0:
+            self.count = 0
+        if index != 0 and index % self.data_num == 0:
+            self.count += 1
+        #print(self.count, index)
         try:
             sub = self.data_csv.iloc[self.count][1]
         except:
-            print(self.count, self.idx_c, index)
-
-        #if self.idx_c % 32 == 0:
-            #print("index: ", self.idx_c)
-            #print("count: ", self.count)
+            print("Error")
+            print(self.count, index)
 
         ### Structure & diffusion-weighted image
         struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)

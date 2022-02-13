@@ -164,7 +164,7 @@ class GAN_3D(nn.Module):
 
 
             """ Validation """
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
                 with torch.no_grad():
                     self.valid(self.valid_data)
 
@@ -185,7 +185,7 @@ class GAN_3D(nn.Module):
 
             val_losses = 0.0
             v_i = 0
-            for v_i, v_str, v_dwi, v_grad in enumerate(valid_data):
+            for v_i, (v_str, v_dwi, v_grad) in enumerate(valid_data):
                 v_fake_dwi = self.G(v_str)
                 val_losses += self.img_criterion(v_fake_dwi, v_dwi)
             val_avg_loss = val_losses / float(v_i + 1.0)

@@ -146,8 +146,7 @@ class I2I_cGAN(nn.Module):
                 self.loss_D.backward()
                 self.opt_D.step()
 
-                if i % 1000 == 0:
-                    print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+            print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
 
             """ Validation """
             if epoch % 100 == 0:

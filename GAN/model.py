@@ -126,8 +126,8 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for batch_count, (struct, dwi, grad) in enumerate(self.train_data):
-                if batch_count == 0:
+            for i, (struct, dwi, grad) in enumerate(self.train_data):
+                if epoch == 1 and i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
@@ -137,8 +137,6 @@ class GAN_3D(nn.Module):
 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
-                #if torch.isnan(D_judge[0]):
-                #    print(self.fake_dwi)
                 self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
                 #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
                 #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
@@ -157,11 +155,8 @@ class GAN_3D(nn.Module):
                 self.loss_D.backward()
                 self.opt_D.step()
 
-                if batch_count % 100 == 0:
-                    print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
-                batch_count += 1
-            print('Time for 1 epoch: ', time.time() - epoch_time)
-
+            print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+            print('Time for an epoch: ', time.time() - epoch_time)
 
             """ Validation """
             if epoch % 100 == 0:

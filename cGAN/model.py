@@ -19,11 +19,6 @@ class I2I_cGAN(nn.Module):
         if len(dataset) > 1:
             self.train_data = dataset[0]
             self.valid_data = dataset[1]
-            train_iter = iter(self.train_data)
-            dwi, grad = train_iter.next()
-            print(type(dwi))   # <class 'torch.Tensor'>
-            print(dwi.size())  #
-            print(grad.size()) #
         else:
             self.test_data = dataset
 
@@ -108,7 +103,6 @@ class I2I_cGAN(nn.Module):
 
     ### Train & Test functions
     def train(self, **kwargs):
-        print("Start Training !!!")
         self.writer = SummaryWriter(self.config.log_dir)
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
         self.opt_D = torch.optim.Adam(self.D.parameters(), lr=self.config.D_lr, betas=(0.5, 0.999))
@@ -119,7 +113,6 @@ class I2I_cGAN(nn.Module):
 
         # start training
         for epoch in range(self.start_epoch, 1 + self.epoch):
-            self.epoch = epoch
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
@@ -147,15 +140,14 @@ class I2I_cGAN(nn.Module):
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
                 self.loss_D = sum(self.D_loss.values())
-
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()
 
-            print('epoch: {:06d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+            print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
 
             """ Validation """
-            if epoch % 10 == 0:
+            if epoch % 100 == 0:
                 with torch.no_grad():
                     self.valid(self.valid_data)
 
@@ -170,26 +162,27 @@ class I2I_cGAN(nn.Module):
         self.writer.close()
 
     def valid(self, valid_data):
-        self.G.eval()
+        with torch.no_grad():
+            self.G.eval()
 
-        val_losses = 0.0
-        v_i = 0
-        for v_i, v_str, v_dwi, v_grad in enumerate(valid_data):
-            v_fake_dwi = self.G(v_str)
-            val_losses += self.img_criterion(v_fake_dwi, v_dwi)
-        val_avg_loss = val_losses / float(v_i + 1.0)
+            val_losses = 0.0
+            v_i = 0
+            for v_i, (v_str, v_dwi, v_grad) in enumerate(valid_data):
+                v_fake_dwi = self.G(v_str)
+                val_losses += self.img_criterion(v_fake_dwi, v_dwi)
+            val_avg_loss = val_losses / float(v_i + 1.0)
 
-        # If valid loss has the highest score,
-        if val_avg_loss > self.val_loss:
-            # save loss value
-            self.val_loss = val_avg_loss
-            # save model info & image
-            self.save_log()
-            self.save_img(save_num=3)
-            self.save_model()
+            # If valid loss has the highest score,
+            if val_avg_loss > self.val_loss:
+                # save loss value
+                self.val_loss = val_avg_loss
+                # save model info & image
+                self.save_log()
+                self.save_img(save_num=3)
+                self.save_model()
 
-            print("======= The highest validation score! =======")
-            print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
+                print("======= The highest validation score! =======")
+                print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
 
     def test(self):
         with torch.no_grad():

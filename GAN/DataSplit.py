@@ -24,14 +24,6 @@ class DataSplit(Dataset):
         return len(self.data_csv) * 103
 
     def __getitem__(self, index):
-        """# new epoch (for new epoch, check whether idx_c value is 0 or not)
-        if self.idx_c == 0:
-            self.count = 0
-        # new subject
-        if self.idx_c != 0 and self.idx_c == self.data_num:
-            self.count += 1
-            self.idx_c = 0
-        print(index, self.idx_c)"""
         if index == 0:
             self.count = 0
         if index != 0 and index % self.data_num == 0:
@@ -63,8 +55,8 @@ class DataSplit(Dataset):
         grad = grad_total[index % 103]
 
         # random example
-        #struct = np.random.random_sample((64, 64, 64))
-        #dwi = np.random.random_sample((64, 64, 64))
+        struct = np.random.random_sample((64, 64, 64))
+        dwi = np.random.random_sample((64, 64, 64))
         ### Transform
         if self.do_transform is not None:
             struct = self.transform(struct)
@@ -73,7 +65,5 @@ class DataSplit(Dataset):
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
-
-        self.idx_c += 1
 
         return struct, dwi, grad

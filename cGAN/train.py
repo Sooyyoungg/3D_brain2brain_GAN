@@ -14,9 +14,9 @@ os.makedirs("Generated_images", exist_ok=True)
 
 ### Data Loader
 config = Config()
-train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_train.csv', header=None)
-val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_val.csv', header=None)
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/preprocessing/sample_code/QC/qc_test.csv', header=None)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 
 train_N = len(train_csv)
 val_N = len(val_csv)

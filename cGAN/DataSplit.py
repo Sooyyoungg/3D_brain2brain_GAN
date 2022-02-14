@@ -57,7 +57,7 @@ class DataSplit(Dataset):
         if self.do_transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
-            #grad = self.transform(grad)
+            grad = transforms.ToTensor(grad)
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))

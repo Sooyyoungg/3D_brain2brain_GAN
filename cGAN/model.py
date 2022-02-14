@@ -13,10 +13,9 @@ class I2I_cGAN(nn.Module):
         self.restore = config.restore
         self.config = config
         self.epoch = config.epoch
-        print("model in!")
 
-        print(len(dataset))
         if len(dataset) > 1:
+            print("Training Start!")
             self.train_data = dataset[0]
             self.valid_data = dataset[1]
         else:
@@ -116,19 +115,21 @@ class I2I_cGAN(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, struct, dwi in enumerate(self.train_data):
-                if i == 0:
+            for i, (struct, dwi, grad) in enumerate(self.train_data):
+                if i == 0 and epoch == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
-                struct = struct.cuda()
-                dwi = dwi.cuda()
-                self.fake_dwi = self.G(struct)
+                struct = struct.cuda().float()
+                dwi = dwi.cuda().float()
+                grad = grad.cuda().float()
+                self.fake_dwi = self.G(self.config, struct, grad)
 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
+                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
+                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
+                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
                 self.loss_G = sum(self.G_loss.values())
                 self.opt_G.zero_grad()
                 self.loss_G .backward()

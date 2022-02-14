@@ -88,7 +88,6 @@ class ResEncoder(nn.Module):
         self.output_dim = self.dim
 
     def forward(self, x):
-        #print("output channel: ", self.output_dim)
         # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
         #print("Generator - Encoder output dim: ", x.shape)
         #print(torch.isnan(x).any())

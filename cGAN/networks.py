@@ -13,7 +13,8 @@ class Generator(nn.Module):
         # (128, 4, 4, 4) -> (1, 64, 64, 64)
         self.generate.append(self.Decoder)
 
-    def forward(self, struct_image, gradient):
+    def forward(self, config, struct_image, gradient):
+        self.config = config
         # input structure image: (batch_size, 1, 64, 64, 64)
         gen_latent = self.generate[0](struct_image)
         self.gen_dwi = self.generate[1](gen_latent, gradient)
@@ -85,9 +86,9 @@ class ResEncoder(nn.Module):
         self.output_dim = self.dim
 
     def forward(self, x):
-        print("output channel: ", self.output_dim)
-        print("Encoder output dim: ", x.shape)
-        return self.model(x)
+        output = self.model(x)
+        #print("Encoder output dim: ", output.shape)  # torch.Size([32, 128, 4, 4, 4])
+        return output
 
 class Decoder(nn.Module):
     def __init__(self, res_norm='none', activ='tanh', pad_type='zero'):
@@ -129,7 +130,7 @@ class Decoder(nn.Module):
 
     def forward(self, x, gradient):
         gradient = self.grad_mapping(gradient)
-        gradient = torch.reshape(gradient, [1, 4, 4, 4])
+        gradient = torch.reshape(gradient, [self.config.batch_size, 1, 4, 4, 4])
         x = torch.cat([x, gradient], dim=0)
         print("Decoder output dim: ", x.shape)
         return self.model(x)

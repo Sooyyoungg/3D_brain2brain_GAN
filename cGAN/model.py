@@ -116,14 +116,15 @@ class I2I_cGAN(nn.Module):
             self.D_lr_scheduler.step()
 
             for i, (struct, dwi, grad) in enumerate(self.train_data):
-                if i == 0 and epoch == 0:
+                if i == 0 and epoch == 1:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
+                    print("Training gradient vector shape: ", grad.shape)
 
                 struct = struct.cuda().float()
                 dwi = dwi.cuda().float()
                 grad = grad.cuda().float()
-                self.fake_dwi = self.G(self.config, struct, grad)
+                self.fake_dwi = self.G(struct, grad)
 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)
@@ -132,12 +133,12 @@ class I2I_cGAN(nn.Module):
                 #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
                 self.loss_G = sum(self.G_loss.values())
                 self.opt_G.zero_grad()
-                self.loss_G .backward()
+                self.loss_G.backward()
                 self.opt_G.step()
 
                 """ Discriminator """
                 D_j_real = self.D(struct)
-                D_j_fake = self.D(self.fake_dwi)
+                D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
                 self.loss_D = sum(self.D_loss.values())
@@ -145,7 +146,8 @@ class I2I_cGAN(nn.Module):
                 self.loss_D.backward()
                 self.opt_D.step()
 
-            print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(self.epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
+                if i % 1000 == 0:
+                    print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
 
             """ Validation """
             if epoch % 100 == 0:

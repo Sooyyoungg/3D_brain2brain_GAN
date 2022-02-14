@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from Blocks import  Conv3dBlock, ResBlocks
+from Blocks import Conv3dBlock, ResBlocks
+from Config import Config
 
 class Generator(nn.Module):
     def __init__(self):
@@ -13,8 +14,7 @@ class Generator(nn.Module):
         # (128, 4, 4, 4) -> (1, 64, 64, 64)
         self.generate.append(self.Decoder)
 
-    def forward(self, config, struct_image, gradient):
-        self.config = config
+    def forward(self, struct_image, gradient):
         # input structure image: (batch_size, 1, 64, 64, 64)
         gen_latent = self.generate[0](struct_image)
         self.gen_dwi = self.generate[1](gen_latent, gradient)
@@ -42,7 +42,7 @@ class Discriminator(nn.Module):
 
             # (128, 8, 8, 8) -> (256, 4, 4, 4)
             nn.Conv3d(128, 256, 4, 2, 1),
-            nn.BatchNorm3d(236),
+            nn.BatchNorm3d(256),
             nn.LeakyReLU(0.2),
         )
         self.LinSigmoid = nn.Sequential(
@@ -56,8 +56,8 @@ class Discriminator(nn.Module):
         result = result.view(-1, 256 * 4 * 4 * 4)
         result = self.LinSigmoid(result)
 
-        print("discriminate result shape:", result.shape)
-        print("result:", result)
+        #print("discriminate result shape:", result.shape)  # torch.Size([16, 1])
+        #print("result:", result)
         return result
 
 
@@ -68,7 +68,7 @@ class ResEncoder(nn.Module):
         self.input_dim = 1
         self.dim = 8
         self.n_downsample = 4
-        self.n_res = 128
+        self.n_res = 2
 
         self.model = []
         # (1, 64, 64, 64) -> (8, 64, 64, 64)
@@ -107,30 +107,32 @@ class Decoder(nn.Module):
 
         ### Generate fake image
         self.output_dim = 1
-        self.dim = 128
+        self.dim = 129
         self.n_upsample = 4
-        self.n_res = 129
+        self.n_res = 2
 
         self.model = []
-        # (129, 4, 4, 4) -> (128, 4, 4, 4)
+        # (129, 4, 4, 4) -> (129, 4, 4, 4)
         self.model += [ResBlocks(self.n_res, self.dim, res_norm, activ, pad_type=pad_type)]
         # upsampling blocks
-        # (128, 4, 4, 4) -> (64, 8, 8, 8) -> (32, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
+        # (129, 4, 4, 4) -> (64, 8, 8, 8) -> (32, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
         for i in range(self.n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
-                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
+                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
             self.dim //= 2
         # (8, 64, 64, 64) -> (8, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
         # use reflection padding in the last conv layer
         # (8, 64, 64, 64) -> (1, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation='lrelu', pad_type=pad_type)]
         self.model += [nn.Sigmoid()]
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x, gradient):
+        batch_size = Config.batch_size
         gradient = self.grad_mapping(gradient)
-        gradient = torch.reshape(gradient, [self.config.batch_size, 1, 4, 4, 4])
-        x = torch.cat([x, gradient], dim=0)
-        print("Decoder output dim: ", x.shape)
-        return self.model(x)
+        gradient = torch.reshape(gradient, [batch_size, 1, 4, 4, 4])
+        x = torch.cat([x, gradient], dim=1)
+        output = self.model(x)
+        #print("Decoder output dim: ", output.shape)  #torch.Size([32, 128, 4, 4, 4])
+        return output

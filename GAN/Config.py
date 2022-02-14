@@ -12,7 +12,7 @@ class Config:
     nchw = [32,64,64,64]
     G_lr = 2.5e-3
     D_lr = 1e-5
-    epoch = 2000
+    epoch = 200
     batch_size = 32
 
     gamma = 0.95

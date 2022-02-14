@@ -18,7 +18,6 @@ class DataSplit(Dataset):
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
         self.count = 0
-        self.idx_c = 0
 
     def __len__(self):
         return len(self.data_csv) * 103
@@ -55,8 +54,8 @@ class DataSplit(Dataset):
         grad = grad_total[index % 103]
 
         # random example
-        struct = np.random.random_sample((64, 64, 64))
-        dwi = np.random.random_sample((64, 64, 64))
+        #struct = np.random.random_sample((64, 64, 64))
+        #dwi = np.random.random_sample((64, 64, 64))
         ### Transform
         if self.do_transform is not None:
             struct = self.transform(struct)

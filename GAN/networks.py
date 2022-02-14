@@ -122,13 +122,13 @@ class Decoder(nn.Module):
         # (128, 4, 4, 4) -> (64, 8, 8, 8) -> (32, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
         for i in range(self.n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
-                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
+                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
             self.dim //= 2
         # (8, 64, 64, 64) -> (8, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
         # use reflection padding in the last conv layer
         # (8, 64, 64, 64) -> (1, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation='lrelu', pad_type=pad_type)]
         self.model += [nn.Sigmoid()]
         self.model = nn.Sequential(*self.model)
 

@@ -18,7 +18,6 @@ class DataSplit(Dataset):
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
         self.count = 0
-        self.idx_c = 0
 
     def __len__(self):
         return len(self.data_csv) * 103

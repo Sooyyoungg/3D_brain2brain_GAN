@@ -45,9 +45,9 @@ class Discriminator(nn.Module):
             nn.BatchNorm3d(256),
             nn.LeakyReLU(0.2),
         )
-        self.LinSigmoid = nn.Sequential(
+        self.LinTanh = nn.Sequential(
             nn.Linear(256 * 4 * 4 * 4, 1),
-            nn.Sigmoid()
+            nn.Tanh()
         )
 
     def forward(self, dwi):
@@ -55,7 +55,7 @@ class Discriminator(nn.Module):
         #print("Discriminator input shape: ", dwi.shape)
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
-        result = self.LinSigmoid(result)
+        result = self.LinTanh(result)
 
         # output: torch.Size([batch_size, 1])
         #print("Discriminator result shape:", result.shape)
@@ -65,7 +65,7 @@ class Discriminator(nn.Module):
 
 ####################### Encoder & Decoder #######################
 class ResEncoder(nn.Module):
-    def __init__(self, norm='none', activ='relu', pad_type='zero'):
+    def __init__(self, norm='in', activ='relu', pad_type='zero'):
         super(ResEncoder, self).__init__()
         self.input_dim = 1
         self.dim = 8
@@ -83,26 +83,25 @@ class ResEncoder(nn.Module):
         # residual blocks
         # (128, 4, 4, 4) -> (128, 4, 4, 4)
         self.model += [ResBlocks(self.n_res, self.dim, norm=norm, activation=activ, pad_type=pad_type)]
-
         self.model = nn.Sequential(*self.model)
         self.output_dim = self.dim
 
     def forward(self, x):
         # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
-        #print("Generator - Encoder output dim: ", x.shape)
-        #print(torch.isnan(x).any())
+        # print("Generator - Encoder output dim: ", x.shape)
+        # print(torch.isnan(x).any())
         output = self.model(x)
-        #print(torch.isnan(output).any()
-        """if inf in output or -inf in output:
-            out_copy = output.clone().detach()
-            out_copy[output == -inf] = inf
-            output[output == -inf] = torch.min(out_copy)
-            out_copy[output == inf] = -inf
-            output[output == inf] = torch.max(out_copy)"""
-        if inf in output or -inf in output:
-            print("inf yes", torch.min(output), torch.max(output))
-        if torch.isnan(output).any():
-            print("nan yes")
+        # print(torch.isnan(output).any()
+        # if inf in output or -inf in output:
+        #     out_copy = output.clone().detach()
+        #     out_copy[output == -inf] = inf
+        #     output[output == -inf] = torch.min(out_copy)
+        #     out_copy[output == inf] = -inf
+        #     output[output == inf] = torch.max(out_copy)
+        # if inf in output or -inf in output:
+        #     print("inf yes", torch.min(output), torch.max(output))
+        # if torch.isnan(output).any():
+        #     print("nan yes")
         return output
 
 class Decoder(nn.Module):
@@ -128,17 +127,18 @@ class Decoder(nn.Module):
         self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
         # use reflection padding in the last conv layer
         # (8, 64, 64, 64) -> (1, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation='lrelu', pad_type=pad_type)]
-        self.model += [nn.Sigmoid()]
+        self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
+        #self.model += [nn.Sigmoid()]
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):
         # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
-        #print("Generator - Decoder output dim: ", x.shape)
+        # print("Generator - Decoder output dim: ", x.shape)
         output = self.model(x)
-        #print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
-        if inf in output or -inf in output:
-            print("inf yes", torch.min(output), torch.max(output))
-        if torch.isnan(output).any():
-            print("nan yes")
+        #p rint("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
+        # if inf in output or -inf in output:
+        #     print("inf yes", torch.min(output), torch.max(output))
+        #     print("inf yes", torch.min(output), torch.max(output))
+        # if torch.isnan(output).any():
+        #     print("nan yes")
         return output

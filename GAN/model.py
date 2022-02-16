@@ -103,11 +103,11 @@ class GAN_3D(nn.Module):
     def save_img(self, save_num=5):
         for i in range(save_num):
             mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-            sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(self.epoch, i)), mdict)
+            sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(self.epoch, i)), mdict)
 
     def save_model(self):
-        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:06d}.pth'.format(self.epoch)))
-        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(self.epoch)))
+        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(self.epoch)))
+        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:04d}.pth'.format(self.epoch)))
 
     ### Train & Test functions
     def train(self, **kwargs):
@@ -163,12 +163,12 @@ class GAN_3D(nn.Module):
                 with torch.no_grad():
                     self.valid(self.valid_data)
 
-            """if self.step % 100 == 0:
-                self.save_log()
+            #if epoch % 100 == 0:
+            #    self.save_log()
 
-            if self.step % 1000 == 0:
+            if epoch % 10 == 0:
                 self.save_img()
-                self.save_model()"""
+                #self.save_model()
 
         print('Finish training !!!')
         print('Total Training Time: ', time.time() - start_time)

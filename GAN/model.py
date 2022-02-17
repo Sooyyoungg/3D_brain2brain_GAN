@@ -3,6 +3,9 @@ import time
 import torch
 from torch import nn
 import torch.nn.functional as F
+import numpy as np
+import nibabel as nib
+from nilearn import plotting
 import scipy.io as sio
 from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
@@ -100,10 +103,22 @@ class GAN_3D(nn.Module):
         for tag, value in scalar_info.items():
             self.writer.add_scalar(tag, value, self.epoch)
 
-    def save_img(self, save_num=5):
+    def save_img(self, epoch, save_num=5):
         for i in range(save_num):
             mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-            sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(self.epoch, i)), mdict)
+            sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(epoch, i)), mdict)
+
+    def vis_img(self, real_imgs, fake_imgs):
+        # Visualize generated image
+        feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())  # 원래 여기 detach()가 없었으나 OOM 이슈로 추가
+        feat = nib.Nifti1Image(feat, affine=np.eye(4))
+        plotting.plot_anat(feat, title="Real_imgs", cut_coords=(32, 32, 32))
+        plotting.show()
+
+        feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())  # 원래 여기 detach()가 없었으나 OOM 이슈로 추가
+        feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
+        plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
+        plotting.show()
 
     def save_model(self):
         torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(self.epoch)))
@@ -166,8 +181,9 @@ class GAN_3D(nn.Module):
             #if epoch % 100 == 0:
             #    self.save_log()
 
-            if epoch % 10 == 0:
-                self.save_img()
+            if epoch % 1 == 0:
+                self.vis_img(dwi, self.fake_dwi)
+                #self.save_img(epoch)
                 #self.save_model()
 
         print('Finish training !!!')

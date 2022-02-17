@@ -16,6 +16,6 @@ class Config:
     batch_size = 32
 
     gamma = 0.95
-    shuffle = True
+    shuffle = False
     num_workers = 0
-    max_iter = 20000
+    max_iter = 200

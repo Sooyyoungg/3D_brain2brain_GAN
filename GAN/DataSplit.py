@@ -14,7 +14,7 @@ class DataSplit(Dataset):
 
         self.do_transform = do_transform
         normal_transform = NormalizeIntensity(subtrahend=0.5, divisor=0.5, nonzero=False)
-        scale_transform = ScaleIntensity(minv=0.0, maxv=1.0)
+        scale_transform = ScaleIntensity(minv=-1.0, maxv=1.0)
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
         self.count = 0

@@ -17,9 +17,9 @@ class Generator(nn.Module):
     def forward(self, struct_image):
         # input structure image: (batch_size, 1, 64, 64, 64)
         gen_latent = self.generate[0](struct_image)
-        self.gen_dwi = self.generate[1](gen_latent)
+        gen_dwi = self.generate[1](gen_latent)
         # output: (batch_size, 1, 64, 64, 64)
-        return self.gen_dwi
+        return gen_dwi
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -52,14 +52,10 @@ class Discriminator(nn.Module):
 
     def forward(self, dwi):
         # input: torch.Size([batch_size, 1, 64, 64, 64])
-        #print("Discriminator input shape: ", dwi.shape)
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
         result = self.LinTanh(result)
-
         # output: torch.Size([batch_size, 1])
-        #print("Discriminator result shape:", result.shape)
-        #print("result:", result)
         return result
 
 
@@ -88,7 +84,6 @@ class ResEncoder(nn.Module):
 
     def forward(self, x):
         # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
-        # print("Generator - Encoder output dim: ", x.shape)
         # print(torch.isnan(x).any())
         output = self.model(x)
         # print(torch.isnan(output).any()
@@ -133,9 +128,8 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
-        # print("Generator - Decoder output dim: ", x.shape)
         output = self.model(x)
-        #p rint("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
+        # print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
         # if inf in output or -inf in output:
         #     print("inf yes", torch.min(output), torch.max(output))
         #     print("inf yes", torch.min(output), torch.max(output))

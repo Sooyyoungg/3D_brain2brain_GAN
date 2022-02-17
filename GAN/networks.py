@@ -3,6 +3,7 @@ import torch.nn as nn
 from numpy import inf
 from Blocks import  Conv3dBlock, ResBlocks
 
+####################### Generator & Discriminator #######################
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -45,23 +46,23 @@ class Discriminator(nn.Module):
             nn.BatchNorm3d(256),
             nn.LeakyReLU(0.2),
         )
-        self.LinTanh = nn.Sequential(
+        self.LinSig = nn.Sequential(
             nn.Linear(256 * 4 * 4 * 4, 1),
-            nn.Tanh()
+            nn.Sigmoid()
         )
 
     def forward(self, dwi):
         # input: torch.Size([batch_size, 1, 64, 64, 64])
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
-        result = self.LinTanh(result)
         # output: torch.Size([batch_size, 1])
+        result = self.LinSig(result)
         return result
 
 
 ####################### Encoder & Decoder #######################
 class ResEncoder(nn.Module):
-    def __init__(self, norm='in', activ='relu', pad_type='zero'):
+    def __init__(self, norm='bn', activ='relu', pad_type='zero'):
         super(ResEncoder, self).__init__()
         self.input_dim = 1
         self.dim = 8
@@ -83,24 +84,12 @@ class ResEncoder(nn.Module):
         self.output_dim = self.dim
 
     def forward(self, x):
-        # Encoder output: torch.Size([batch_size, 1, 64, 64, 64])
-        # print(torch.isnan(x).any())
+        # Encoder output: torch.Size([batch_size, 128, 4, 4, 4])
         output = self.model(x)
-        # print(torch.isnan(output).any()
-        # if inf in output or -inf in output:
-        #     out_copy = output.clone().detach()
-        #     out_copy[output == -inf] = inf
-        #     output[output == -inf] = torch.min(out_copy)
-        #     out_copy[output == inf] = -inf
-        #     output[output == inf] = torch.max(out_copy)
-        # if inf in output or -inf in output:
-        #     print("inf yes", torch.min(output), torch.max(output))
-        # if torch.isnan(output).any():
-        #     print("nan yes")
         return output
 
 class Decoder(nn.Module):
-    def __init__(self, res_norm='none', activ='tanh', pad_type='zero'):
+    def __init__(self, res_norm='bn', activ='tanh', pad_type='zero'):
         super(Decoder, self).__init__()
 
         ### Generate fake image
@@ -116,10 +105,10 @@ class Decoder(nn.Module):
         # (128, 4, 4, 4) -> (64, 8, 8, 8) -> (32, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
         for i in range(self.n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
-                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
+                           Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='bn', activation='relu', pad_type=pad_type)]
             self.dim //= 2
         # (8, 64, 64, 64) -> (8, 64, 64, 64)
-        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='ln', activation='lrelu', pad_type=pad_type)]
+        self.model += [Conv3dBlock(self.dim, self.dim, 5, 1, 2, norm='bn', activation='relu', pad_type=pad_type)]
         # use reflection padding in the last conv layer
         # (8, 64, 64, 64) -> (1, 64, 64, 64)
         self.model += [Conv3dBlock(self.dim, self.output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
@@ -127,12 +116,6 @@ class Decoder(nn.Module):
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):
-        # Decoder output: torch.Size([batch_size, 128, 64, 64, 64])
+        # Decoder output: torch.Size([batch_size, 1, 64, 64, 64])
         output = self.model(x)
-        # print("Decoder: ", torch.isnan(x).any(), torch.isnan(output).any())
-        # if inf in output or -inf in output:
-        #     print("inf yes", torch.min(output), torch.max(output))
-        #     print("inf yes", torch.min(output), torch.max(output))
-        # if torch.isnan(output).any():
-        #     print("nan yes")
         return output

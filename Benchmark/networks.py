@@ -9,53 +9,6 @@ import functools
 ##################################################################################
 # Generator
 ##################################################################################
-class q_DL(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(q_DL, self).__init__()
-        self.model = []
-        dim = 150 #750
-        self.model += [Conv2dBlock(input_dim, dim, 1, 1, 0, norm='none', activation='relu')]
-        self.model += [nn.Dropout2d(0.1)]
-        self.model += [Conv2dBlock(dim, dim*5, 1, 1, 0, norm='none', activation='relu')]
-        self.model += [nn.Dropout2d(0.1)]
-        self.model += [Conv2dBlock(dim*5, output_dim, 1, 1, 0, norm='none', activation='none')]
-        self.model = nn.Sequential(*self.model)
-
-    def forward(self, images):
-        return self.model(images)
-
-class q_DL2D(nn.Module):
-    # https://onlinelibrary.wiley.com/doi/epdf/10.1002/mrm.27568
-    def __init__(self, input_dim, output_dim):
-        super(q_DL2D, self).__init__()
-        self.model = []
-        self.model += [Conv2dBlock(input_dim, 128, 1, 1, 0, norm='none', activation='relu')]
-        self.model += [ResBlock(128, norm='none', activation='relu')]
-        self.model += [Conv2dBlock(128, 256, 1, 1, 0, norm='none', activation='relu')]
-        self.model += [ResBlock(256, norm='none', activation='relu')]
-        self.model += [Conv2dBlock(256, output_dim, 1, 1, 0, norm='none', activation='none')]
-        self.model = nn.Sequential(*self.model)
-
-    def forward(self, images):
-        return self.model(images)
-
-class smri2scalarGen(nn.Module):
-    # baseline sMRI to scalar maps generator without adain
-    def __init__(self, input_dim, output_dim, params):
-        super(smri2scalarGen, self).__init__()
-        dim = params['dim']
-        n_downsample = params['n_downsample']
-        n_res = params['n_res']
-        activ = params['activ']
-        pad_type = params['pad_type']
-        self.enc = ResEncoder(n_downsample, n_res, input_dim, dim, 'in', activ, pad_type=pad_type)  # "in"
-        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, output_dim, res_norm='in', activ='none',
-                           pad_type=pad_type)
-
-    def forward(self, images):
-        content = self.enc(images)
-        images_recon = self.dec(content)
-        return images_recon
 
 class SimpleAdaInGen(nn.Module):
     # AdaIN auto-encoder architecture

@@ -110,12 +110,12 @@ class GAN_3D(nn.Module):
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
-        feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())  # 원래 여기 detach()가 없었으나 OOM 이슈로 추가
+        feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
         plotting.plot_anat(feat, title="Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
-        feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())  # 원래 여기 detach()가 없었으나 OOM 이슈로 추가
+        feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
         plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
         plotting.show()

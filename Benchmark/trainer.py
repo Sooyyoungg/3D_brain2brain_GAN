@@ -15,12 +15,9 @@ class dwi_Trainer(nn.Module):
 
         lr = hyperparameters['lr']
         # Initiate the networks
-        self.multimodal = hyperparameters['multimodal_t1'] or hyperparameters['multimodal_t2']
-        self.mb0 = hyperparameters['multimodal_b0'] > 0
         self.mt1 = hyperparameters['multimodal_t1'] > 0
-        self.mt2 = hyperparameters['multimodal_t2'] > 0
         # input channel로 b0, t1, t2를 사용
-        assert hyperparameters['multimodal_b0'] + hyperparameters['multimodal_t1'] + hyperparameters['multimodal_t2'] == hyperparameters['input_dim']
+        assert hyperparameters['multimodal_t1'] == hyperparameters['input_dim']
         print(hyperparameters['gen']['g_type'])
 
         ### Generator
@@ -112,18 +109,6 @@ class dwi_Trainer(nn.Module):
         nc = 0
         in_i = None
         return_dict = {}
-        return_dict['b0'] = data_dict['b0_%d' % (i + 1)][0,0].detach().cpu().numpy()
-        if self.mb0:
-            nc += 1
-            in_i = data_dict['b0_%d' % (i + 1)].to(self.device).float()
-        if self.mt2:
-            nc += 1
-            t2_i = data_dict['t2_%d' % (i + 1)].to(self.device).float()
-            return_dict['t2'] = t2_i[0, 0].detach().cpu().numpy()
-            if in_i is None:
-                in_i = t2_i
-            else:
-                in_i = torch.cat((in_i, t2_i), dim=1)
         if self.mt1:
             nc += 1
             t1_i = data_dict['t1_%d' % (i + 1)].to(self.device).float()

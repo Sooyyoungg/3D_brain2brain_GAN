@@ -3,6 +3,7 @@ import numpy as np
 sys.path.append('..')
 sys.path.append('.')
 import argparse
+import pandas as pd
 from trainer import dwi_Trainer
 from time import time
 import os
@@ -12,65 +13,49 @@ import shutil
 import torch.utils.data
 from utils.visualization import tensorboard_vis
 from utils.utilization import mkdirs, convert, get_config
+from DataSplit import DataSplit
 import matplotlib
 matplotlib.use('Agg')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='../configs/smri2dwi.yaml', help='Path to the config file.')
+parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
 parser.add_argument('--data_root', type=str, default='', help='Path to the data, if None, get from config files')
 parser.add_argument("--resume", type=int, default=0)
 opts = parser.parse_args()
-##########################
-# Load experiment setting
-##########################
+
+### Load experiment setting
 config = get_config(opts.config)
 n_epochs = config['n_epoch']
 n_iterations = config['n_iterations']
 display_size = config['display_size']
 batch_size = config['batch_size']
 
-#############################
-# Setup model and data loader
-#############################
-print('* Set up models ...')
-print('---------------------------------------------------------------------')
-
+### Setup model and data loader
 trainer = dwi_Trainer(config)
 trainer.to(trainer.device)
-print('---------------------------------------------------------------------')
 
 n_dwi = config['n_dwi']
-load_b0 = config['multimodal_b0']
-load_t2 = config['multimodal_t2']
 load_t1 = config['multimodal_t1']
 
-print('* Dataset ')
-print('---------------------------------------------------------------------')
-print('- '+ config['dataset'])
-if opts.data_root == '':
-    data_root = config['data_root']
-else:
-    data_root = opts.data_root
-print('* Data root defined in ' + data_root)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 
-file = '../datasets/data_HCP_wuminn/trainval_example.h5'
+train_N = len(train_csv)
+val_N = len(val_csv)
+test_N = len(test_csv)
+# sample data: 128 18 36
+print(train_N, val_N, test_N)
 
-train_dataset = h5Loader(folder=file, pad_size=config['pad_size'], is_train=True, dir_group=n_dwi)
-val_dataset = h5Loader(folder=file,  pad_size=config['pad_size'], is_train=False, dir_group=n_dwi)
+# split
+train_data = DataSplit(data_csv=train_csv, data_dir=config['data_root'], do_transform=True)
+val_data = DataSplit(data_csv=val_csv, data_dir=config['data_root'], do_transform=True)
 
-data_loader_train = torch.utils.data.DataLoader(dataset= train_dataset,
-                                           batch_size=batch_size, shuffle=False,  # shuffle in data loader (speed up)
-                                           num_workers=2,
-                                           pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(dataset= val_dataset,
-                                           batch_size=batch_size, shuffle=False,
-                                           num_workers=2,
-                                           pin_memory=False)
-print('---------------------------------------------------------------------')
+# load
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=False, num_workers=0, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=False, num_workers=0, pin_memory=False)
 
-#################################
-# Setup logger and output folders
-#################################
+### Setup logger and output folders
 log_dir = config['log_dir']
 if not os.path.exists(log_dir):
     print('* Creating log directory: ' + log_dir)

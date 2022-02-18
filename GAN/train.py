@@ -15,7 +15,7 @@ from Config import Config
 from DataSplit import DataSplit
 from model import GAN_3D
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:'+str(Config.gpu[0]) if torch.cuda.is_available() else 'cpu')
 print(device)
 
 os.makedirs("Generated_images", exist_ok=True)

@@ -5,7 +5,7 @@ class Config:
     log_dir = '/home/connectome/conmaster/Pycharm_projects/3D_I2I_GAN/GAN/log'
     img_dir = '/home/connectome/conmaster/Pycharm_projects/3D_I2I_GAN/GAN/Generated_images'
 
-    gpu = [2]
+    gpu = [0]
     mode = 'train'
     restore = None
 

@@ -161,7 +161,7 @@ class GAN_3D(nn.Module):
                 self.opt_G.step()
 
                 """ Discriminator """
-                D_j_real = self.D(struct)
+                D_j_real = self.D(dwi)
                 D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}

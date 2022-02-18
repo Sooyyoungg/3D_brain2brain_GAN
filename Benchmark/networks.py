@@ -5,11 +5,9 @@ import torch.nn.functional as F
 from torch.nn import init
 import functools
 
-
 ##################################################################################
 # Generator
 ##################################################################################
-
 class SimpleAdaInGen(nn.Module):
     # AdaIN auto-encoder architecture
     def __init__(self, input_dim, params):
@@ -24,8 +22,7 @@ class SimpleAdaInGen(nn.Module):
 
         # content encoder
         self.enc = AdaEncoder(n_downsample, n_res, input_dim, dim, 'in', activ, pad_type=pad_type)  # "in"
-        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, input_dim, res_norm='adain', activ='sigmoid',
-                           pad_type=pad_type)
+        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, input_dim, res_norm='adain', activ='sigmoid', pad_type=pad_type)
 
         # MLP to generate AdaIN parameters
         self.mlp_enc = MLP(style_dim, self.get_num_adain_params(self.enc), mlp_dim, 3, norm='none', activ=activ)
@@ -43,7 +40,7 @@ class SimpleAdaInGen(nn.Module):
     def assign_adain_params(self, adain_params, model):
         # assign the adain_params to the AdaIN layers in model
         for m in model.modules():
-            if m.__class__.__name__ == "AdaptiveInstanceNorm2d":
+            if m.__class__.__name__ == "AdaptiveInstanceNorm3d":
                 mean = adain_params[:, :m.num_features]
                 std = adain_params[:, m.num_features:2*m.num_features]
                 m.bias = mean.contiguous().view(-1)
@@ -55,7 +52,7 @@ class SimpleAdaInGen(nn.Module):
         # return the number of AdaIN parameters needed by the model
         num_adain_params = 0
         for m in model.modules():
-            if m.__class__.__name__ == "AdaptiveInstanceNorm2d":
+            if m.__class__.__name__ == "AdaptiveInstanceNorm3d":
                 num_adain_params += 2*m.num_features
         return num_adain_params
 
@@ -91,110 +88,6 @@ class ResAdaInGen(SimpleAdaInGen):
 ##################################################################################
 # Discriminator
 ##################################################################################
-class NLayerProjectionDiscriminator(nn.Module):
-    """Defines a PatchGAN discriminator with conditional projection"""
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, embed=False, embedding_dim=256, crop_size=96, gradient_penalty=0.):
-        """Construct a PatchGAN discriminator
-        Parameters:
-            input_nc (int)  -- the number of channels in input images
-            ndf (int)       -- the number of filters in the last conv layer
-            n_layers (int)  -- the number of conv layers in the discriminator
-            norm_layer      -- normalization layer
-        """
-        super(NLayerProjectionDiscriminator, self).__init__()
-        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
-            use_bias = norm_layer.func == nn.InstanceNorm2d
-        else:
-            use_bias = norm_layer == nn.InstanceNorm2d
-        self.gradient_penalty = gradient_penalty
-        kw = 4
-        padw = 1
-        sequence = [nn.utils.spectral_norm(nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw)),
-                    nn.LeakyReLU(0.2, True)]
-        out_size = self.get_output_size(crop_size, kw, padw, 2)
-        nf_mult = 1
-        nf_mult_prev = 1
-        for n in range(1, n_layers):  # gradually increase the number of filters
-            nf_mult_prev = nf_mult
-            nf_mult = min(2 ** n, 8)
-            sequence += [
-                nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias)),
-                #norm_layer(ndf * nf_mult),
-                nn.LeakyReLU(0.2, True)
-            ]
-            out_size = self.get_output_size(out_size, kw, padw, 2)
-
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
-        sequence += [
-            nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias)),
-            #norm_layer(ndf * nf_mult),
-            nn.LeakyReLU(0.2, True)
-        ]
-        out_size = self.get_output_size(out_size, kw, padw, 1)
-
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]  # output 1 channel prediction map
-        self.model = nn.Sequential(*sequence)
-        out_size = self.get_output_size(out_size, kw, padw, 1)
-
-        if embed:
-            self.dim=embedding_dim
-            #print(out_size)
-            self.embedding = nn.Linear(4, embedding_dim) #nn.Linear(3, int(out_size*out_size*1*embedding_dim))
-            self.fc = nn.Conv2d(1, embedding_dim, 3, padding=1)
-
-    def get_output_size(self, in_size, kernel_size, padding, stride):
-        return int((in_size - kernel_size + 2*padding)/stride + 1)
-
-    def forward(self, input, y=None):
-        # y as a condition for projection Discriminator, if None, return standard forward
-        # if y is given, dimension will be batch size * embedding dimension
-        """Standard forward."""
-        if y is None:
-            return self.model(input)
-        else:
-            out = self.model(input)
-            out_emb = self.fc(out)
-            bs, c, w, h = out_emb.size()
-            y_emb = self.embedding(y).view(-1, self.dim, 1, 1).expand_as(out_emb)
-            out = out + torch.sum(y_emb * out_emb, 1, keepdim=True)
-            return out
-
-
-    def get_D_loss(self, real_in, real_img, real_bvec, fake_in, fake_img, fake_bvec, criterionGAN):
-        """Calculate GAN loss for the discriminator, from pix2pix"""
-        '''
-        input: b0
-        real_img: target dwi, 
-        real_bvec: bvec for real_img
-        fake_img: generated image
-        fake_bvec: bvec for generated img
-        in case we want to use unpaired sampling, or the real_bvec & fake_bvec would be the same
-        '''
-        # Fake; stop backprop to the generator by detaching fake_B
-        fake_AB = torch.cat([fake_in, fake_img.detach()], dim=1)
-        pred_fake = self.forward(fake_AB, fake_bvec)
-        loss_D_fake = criterionGAN(pred_fake, False)
-        # Real
-        real_AB = torch.cat([real_in, real_img], dim=1)
-        pred_real = self.forward(real_AB, real_bvec)
-        loss_D_real = criterionGAN(pred_real, True)
-
-        loss_D_GAN = (loss_D_fake + loss_D_real) * 0.5
-        # Calculate gradients of probabilities with respect to examples
-        if self.gradient_penalty > 0:
-            return loss_D_GAN, pred_real, real_AB
-
-        return loss_D_GAN
-
-    def get_G_loss(self, input, fake_img, fake_emb, criterionGAN):
-        """Calculate GAN loss for the generator"""
-        # G(A) should fake the discriminator
-        fake_AB = torch.cat([input, fake_img], dim=1)
-        pred_fake = self.forward(fake_AB, fake_emb)
-        loss_G_GAN = criterionGAN(pred_fake, True)
-        return loss_G_GAN
-
 class GANLoss(nn.Module):
     """Define different GAN objectives.
     The GANLoss class abstracts away the need to create the target label tensor
@@ -264,8 +157,7 @@ class Unet_Discriminator(nn.Module):
     def __init__(self, input_nc=1, ndf=64, kw=3, padw=1, n_layers=3, n_latent=2, output_nc=1, use_bias=True, embed=True, device='cuda:0'):
         super(Unet_Discriminator, self).__init__()
         self.conditional = embed
-        self.head = nn.Sequential(*[Conv2dBlock(input_nc, ndf, stride=1, kernel_size=kw, norm='sn', activation='lrelu', padding=padw),
-                    nn.LeakyReLU(0.2, True)])
+        self.head = nn.Sequential(*[Conv3dBlock(input_nc, ndf, stride=1, kernel_size=kw, norm='sn', activation='lrelu', padding=padw), nn.LeakyReLU(0.2, True)])
         nf_mult = 1
         nf_mult_prev = 1
         self.enc_layers = []
@@ -274,11 +166,9 @@ class Unet_Discriminator(nn.Module):
             nf_mult_prev = nf_mult
             nf_mult = min(2 ** n, 8)
             self.enc_layers.append(nn.Sequential(*[
-                Conv2dBlock(ndf * nf_mult_prev, ndf * nf_mult, stride=1, kernel_size=kw, norm='sn', activation='lrelu',
-                            pad_type='zero', padding=padw),
-                nn.AvgPool2d(2),
-                nn.LeakyReLU(0.2, True)
-            ]))
+                Conv3dBlock(ndf * nf_mult_prev, ndf * nf_mult, stride=1, kernel_size=kw, norm='sn', activation='lrelu', pad_type='zero', padding=padw),
+                nn.AvgPool3d(2),
+                nn.LeakyReLU(0.2, True)]))
         self.enc_layers = nn.ModuleList(self.enc_layers)
 
         self.latent = []
@@ -291,18 +181,18 @@ class Unet_Discriminator(nn.Module):
         if embed:
             self.embedding_middle = nn.Linear(4, ndf * nf_mult)
             self.embedding_out = nn.Linear(4, output_nc)
-            self.fc = nn.Conv2d(1, ndf * nf_mult, 4, padding=1)
+            self.fc = nn.Conv3d(1, ndf * nf_mult, 4, padding=1)
         self.dec_layers = []
         for n in range(1, n_layers+1):
             nf_mult_prev = nf_mult
             nf_mult = nf_mult // 2
             self.dec_layers.append(nn.Sequential(*[
-                Conv2dBlock(ndf * (nf_mult_prev)* 2, ndf * nf_mult, stride=1, kernel_size=kw, norm='sn',
+                Conv3dBlock(ndf * (nf_mult_prev)* 2, ndf * nf_mult, stride=1, kernel_size=kw, norm='sn',
                             activation='lrelu', pad_type='zero', padding=padw),
                 nn.LeakyReLU(0.2, True)
             ]))
         self.dec_layers = nn.ModuleList(self.dec_layers)
-        self.last = Conv2dBlock(ndf * nf_mult, 1, stride=1, kernel_size=kw, norm='sn',
+        self.last = Conv3dBlock(ndf * nf_mult, 1, stride=1, kernel_size=kw, norm='sn',
                             activation='none', pad_type='zero', padding=padw)
 
     def init_weight(self):
@@ -317,15 +207,15 @@ class Unet_Discriminator(nn.Module):
         conditional = False
         if y is not None:
             conditional = True
-        h = x
+        h = x                             # h: torch.Size([4, 2, 64, 64, 64])
         res_features = []
-        h = self.head(h)
+        h = self.head(h)                  # h: torch.Size([4, 64, 64, 64, 64])
         for n in range(self.n_downsample):
             h = self.enc_layers[n](h)
             res_features.append(h)
-        h = self.latent(h)
+        h = self.latent(h)                # h: torch.Size([4, 256, 16, 16, 16])
         h_ = h
-        h_ = torch.sum(h_, [2,3])
+        h_ = torch.sum(h_, [2,3,4])         # h_: torch.Size([4, 256])
         bottleneck_out = self.linear(h_)
 
         for n in range(self.n_downsample):
@@ -337,11 +227,11 @@ class Unet_Discriminator(nn.Module):
         out = self.last(h)
         if conditional:
             emb_mid = self.embedding_middle(y)
-            proj_mid = torch.sum(emb_mid * bottleneck_out, 1, keepdim=True)
+            proj_mid = torch.sum(emb_mid * bottleneck_out, 1, keepdim=True)    # torch.Size([4, 1])
             bottleneck_out = bottleneck_out + proj_mid
 
-            emb_out = self.embedding_out(y)
-            emb_out = emb_out.view(emb_out.size(0), emb_out.size(1), 1, 1).expand_as(out)
+            emb_out = self.embedding_out(y)     # torch.Size([4, 1])
+            emb_out = emb_out.view(emb_out.size(0), emb_out.size(1), 1, 1, 1).expand_as(out)
             proj = torch.sum(emb_out * out, 1, keepdim=True)
             out = out + proj
         return out, bottleneck_out
@@ -367,7 +257,7 @@ class Unet_Discriminator(nn.Module):
         loss_D_fake_pix, loss_D_fake_img = criterionGAN(pred_fake_pix, False), criterionGAN(pred_fake_img, False)
         # Real
         real_AB = torch.cat((input_real, real_img), dim=1)
-        print(real_AB.size())
+        #print(real_AB.size())
         pred_real_pix, pred_real_img = self.forward(real_AB, real_bvec)
         loss_D_real_pix, loss_D_real_img = criterionGAN(pred_real_pix, True), criterionGAN(pred_real_img, True)
         # combine loss and calculate gradients
@@ -394,10 +284,10 @@ class ResEncoder(nn.Module):
     def __init__(self, n_downsample, n_res, input_dim, dim, norm, activ, pad_type):
         super(ResEncoder, self).__init__()
         self.model = []
-        self.model += [Conv2dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         # downsampling blocks
         for i in range(n_downsample):
-            self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
+            self.model += [Conv3dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             dim *= 2
         # residual blocks
         self.model += [ResBlocks(n_res, dim, norm=norm, activation=activ, pad_type=pad_type)]
@@ -412,10 +302,10 @@ class AdaEncoder(nn.Module):
     def __init__(self, n_downsample, n_res, input_dim, dim, norm, activ, pad_type):
         super(AdaEncoder, self).__init__()
         self.model = []
-        self.model += [Conv2dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(input_dim, dim, 7, 1, 3, norm=norm, activation=activ, pad_type=pad_type)]
         # downsampling blocks
         for i in range(n_downsample):
-            self.model += [Conv2dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
+            self.model += [Conv3dBlock(dim, 2 * dim, 4, 2, 1, norm=norm, activation=activ, pad_type=pad_type)]
             dim *= 2
         # residual blocks
         self.model += [ResBlocks(n_res, dim, norm='adain', activation=activ, pad_type=pad_type)]
@@ -435,10 +325,10 @@ class Decoder(nn.Module):
         # upsampling blocks
         for i in range(n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
-                           Conv2dBlock(dim, dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
+                           Conv3dBlock(dim, dim // 2, 5, 1, 2, norm='ln', activation='relu', pad_type=pad_type)]
             dim //= 2
         # use reflection padding in the last conv layer
-        self.model += [Conv2dBlock(dim, output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
+        self.model += [Conv3dBlock(dim, output_dim, 7, 1, 3, norm='none', activation=activ, pad_type=pad_type)]
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x):
@@ -484,13 +374,13 @@ class DResBlock(nn.Module):  # extended resblock with different in/ out dimensio
         self.downsample = downsample
         self.in_dim, self.out_dim = in_dim, out_dim
         self.mid_dim = out_dim
-        self.conv1 = Conv2dBlock(self.in_dim, self.mid_dim, kw, 1, norm=norm, activation=activation,
+        self.conv1 = Conv3dBlock(self.in_dim, self.mid_dim, kw, 1, norm=norm, activation=activation,
                                  pad_type=pad_type, padding=padding)
-        self.conv2 = Conv2dBlock(self.mid_dim, self.out_dim, kw, 1, norm=norm, activation='none', pad_type=pad_type,
+        self.conv2 = Conv3dBlock(self.mid_dim, self.out_dim, kw, 1, norm=norm, activation='none', pad_type=pad_type,
                                  padding=padding)
         self.learnable_sc = (in_dim != out_dim)
         if self.learnable_sc:
-            self.conv_sc = Conv2dBlock(self.in_dim, self.out_dim, 1, 1, pad_type=pad_type, norm=norm)
+            self.conv_sc = Conv3dBlock(self.in_dim, self.out_dim, 1, 1, pad_type=pad_type, norm=norm)
 
     def shortcut(self, x):
         if self.downsample:
@@ -513,8 +403,8 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         model = []
-        model += [Conv2dBlock(dim ,dim, 3, 1, 1, norm=norm, activation=activation, pad_type=pad_type)]
-        model += [Conv2dBlock(dim ,dim, 3, 1, 1, norm=norm, activation='none', pad_type=pad_type)]
+        model += [Conv3dBlock(dim ,dim, 3, 1, 1, norm=norm, activation=activation, pad_type=pad_type)]
+        model += [Conv3dBlock(dim ,dim, 3, 1, 1, norm=norm, activation='none', pad_type=pad_type)]
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
@@ -523,31 +413,32 @@ class ResBlock(nn.Module):
         out = out + residual
         return out
 
-class Conv2dBlock(nn.Module):
+class Conv3dBlock(nn.Module):
     def __init__(self, input_dim ,output_dim, kernel_size, stride, padding=0, norm='none', activation='relu', pad_type='zero'):
-        super(Conv2dBlock, self).__init__()
+        super(Conv3dBlock, self).__init__()
         self.use_bias = True
         # initialize padding
         if pad_type == 'reflect':
-            self.pad = nn.ReflectionPad2d(padding)
+            self.pad = nn.ReflectionPad3d(padding)
         elif pad_type == 'replicate':
-            self.pad = nn.ReplicationPad2d(padding)
+            self.pad = nn.ReplicationPad3d(padding)
         elif pad_type == 'zero':
-            self.pad = nn.ZeroPad2d(padding)
+            #self.pad = nn.ZeroPad2d(padding)
+            self.pad = nn.ConstantPad3d(padding, 0)
         else:
             assert 0, "Unsupported padding type: {}".format(pad_type)
 
         # initialize normalization
         norm_dim = output_dim
         if norm == 'bn':
-            self.norm = nn.BatchNorm2d(norm_dim)
+            self.norm = nn.BatchNorm3d(norm_dim)
         elif norm == 'in':
-            #self.norm = nn.InstanceNorm2d(norm_dim, track_running_stats=True)
-            self.norm = nn.InstanceNorm2d(norm_dim)
+            #self.norm = nn.InstanceNorm3d(norm_dim, track_running_stats=True)
+            self.norm = nn.InstanceNorm3d(norm_dim)
         elif norm == 'ln':
             self.norm = LayerNorm(norm_dim)
         elif norm == 'adain':
-            self.norm = AdaptiveInstanceNorm2d(norm_dim)
+            self.norm = AdaptiveInstanceNorm3d(norm_dim)
         elif norm == 'none' or norm == 'sn':
             self.norm = None
         else:
@@ -575,9 +466,9 @@ class Conv2dBlock(nn.Module):
 
         # initialize convolution
         if norm == 'sn':
-            self.conv = SpectralNorm(nn.Conv2d(input_dim, output_dim, kernel_size, stride, bias=self.use_bias))
+            self.conv = SpectralNorm(nn.Conv3d(input_dim, output_dim, kernel_size, stride, bias=self.use_bias))
         else:
-            self.conv = nn.Conv2d(input_dim, output_dim, kernel_size, stride, bias=self.use_bias)
+            self.conv = nn.Conv3d(input_dim, output_dim, kernel_size, stride, bias=self.use_bias)
 
     def forward(self, x):
         x = self.conv(self.pad(x))
@@ -637,9 +528,9 @@ class LinearBlock(nn.Module):
 ##################################################################################
 # Normalization layers
 ##################################################################################
-class AdaptiveInstanceNorm2d(nn.Module):
+class AdaptiveInstanceNorm3d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1):
-        super(AdaptiveInstanceNorm2d, self).__init__()
+        super(AdaptiveInstanceNorm3d, self).__init__()
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
@@ -736,7 +627,6 @@ class SpectralNorm(nn.Module):
         except AttributeError:
             return False
 
-
     def _make_params(self):
         w = getattr(self.module, self.name)
 
@@ -755,10 +645,6 @@ class SpectralNorm(nn.Module):
         self.module.register_parameter(self.name + "_v", v)
         self.module.register_parameter(self.name + "_bar", w_bar)
 
-
     def forward(self, *args):
         self._update_u_v()
         return self.module.forward(*args)
-
-
-

@@ -18,3 +18,6 @@ print(torch.version.cuda)
 print(torch.backends.cudnn.version())
 torch.backends.cudnn.enabled = True
 print(torch.backends.cudnn.enabled)
+
+for i in range(1, 10):
+    print(i)

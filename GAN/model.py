@@ -1,8 +1,8 @@
 import os
 import time
 import torch
+from matplotlib import pyplot as plt
 from torch import nn
-import torch.nn.functional as F
 import numpy as np
 import nibabel as nib
 from nilearn import plotting
@@ -17,18 +17,13 @@ class GAN_3D(nn.Module):
         self.gpu = config.gpu
         self.mode = config.mode
         self.restore = config.restore
-        self.epoch = config.epoch
+        self.tot_epoch = config.epoch
         self.batch_size = config.batch_size
 
         if len(dataset) > 1:
             print("Training Start!")
             self.train_data = dataset[0]
             self.valid_data = dataset[1]
-            #train_iter = iter(self.train_data)
-            #struct, dwi, grad = train_iter.next()
-            #print(type(dwi))   # <class 'torch.Tensor'>
-            #print(dwi.size())  # torch.Size([16, 1, 64, 64, 64])
-            #print(grad.size()) # torch.Size([16, 4])
         else:
             print("Testing Start!")
             self.test_data = dataset
@@ -87,7 +82,7 @@ class GAN_3D(nn.Module):
         else:
             self.start_epoch = 1
 
-    def save_log(self):
+    def save_log(self, epoch):
         scalar_info = {
             'loss_D': self.loss_D,
             'loss_G': self.loss_G,
@@ -101,12 +96,14 @@ class GAN_3D(nn.Module):
             scalar_info['D_loss/' + key] = value
 
         for tag, value in scalar_info.items():
-            self.writer.add_scalar(tag, value, self.epoch)
+            self.writer.add_scalar(tag, value, epoch)
 
     def save_img(self, epoch, save_num=5):
-        for i in range(save_num):
-            mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-            sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(epoch, i)), mdict)
+        # for i in range(save_num):
+        #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
+        #     sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(epoch, i)), mdict)
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)), self.dwi[0].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[0].detach().cpu().numpy(), cmap='gray')
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
@@ -120,9 +117,9 @@ class GAN_3D(nn.Module):
         plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
-    def save_model(self):
-        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(self.epoch)))
-        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:04d}.pth'.format(self.epoch)))
+    def save_model(self, epoch):
+        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(epoch)))
+        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:04d}.pth'.format(epoch)))
 
     ### Train & Test functions
     def train(self, **kwargs):
@@ -136,7 +133,7 @@ class GAN_3D(nn.Module):
 
         start_time = time.time()
         # start training
-        for epoch in range(self.start_epoch, 1 + self.epoch):
+        for epoch in range(self.start_epoch, 1 + self.tot_epoch):
             epoch_time = time.time()
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
@@ -147,7 +144,7 @@ class GAN_3D(nn.Module):
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
                 struct = struct.cuda().float()
-                dwi = dwi.cuda().float()
+                self.dwi = dwi.cuda().float()
                 self.fake_dwi = self.G(struct)
 
                 """ Generator """
@@ -161,7 +158,7 @@ class GAN_3D(nn.Module):
                 self.opt_G.step()
 
                 """ Discriminator """
-                D_j_real = self.D(struct)
+                D_j_real = self.D(self.dwi)
                 D_j_fake = self.D(self.fake_dwi.detach())
                 self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
                                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
@@ -176,21 +173,21 @@ class GAN_3D(nn.Module):
             """ Validation """
             if epoch % 100 == 0:
                 with torch.no_grad():
-                    self.valid(self.valid_data)
+                    self.valid(self.valid_data, epoch)
 
-            #if epoch % 100 == 0:
-            #    self.save_log()
+            # if epoch % 100 == 0:
+            #    self.save_log(epoch)
 
             if epoch % 1 == 0:
                 self.vis_img(dwi, self.fake_dwi)
-                #self.save_img(epoch)
-                #self.save_model()
+                self.save_img(epoch)
+                #self.save_model(epoch)
 
         print('Finish training !!!')
         print('Total Training Time: ', time.time() - start_time)
         self.writer.close()
 
-    def valid(self, valid_data):
+    def valid(self, valid_data, epoch):
         with torch.no_grad():
             self.G.eval()
 
@@ -206,12 +203,12 @@ class GAN_3D(nn.Module):
                 # save loss value
                 self.val_loss = val_avg_loss
                 # save model info & image
-                self.save_log()
+                self.save_log(epoch)
                 self.save_img(save_num=3)
-                self.save_model()
+                self.save_model(epoch)
 
                 print("======= The highest validation score! =======")
-                print('epoch: {:06d}, loss_valid for Generator: {:.6f}'.format(self.epoch, self.val_loss))
+                print('epoch: {:04d}, loss_valid for Generator: {:.6f}'.format(epoch, self.val_loss))
 
     def test(self):
         with torch.no_grad():
@@ -222,12 +219,13 @@ class GAN_3D(nn.Module):
 
                 """ Generator """
                 test_D_judge = self.D(self.test_fake_dwi)
-                self.test_G_loss = {'adv_fake': self.adv_criterion(test_D_judge, torch.ones_like(test_D_judge)),
-                                    'real_fake': self.img_criterion(self.test_fake_dwi, dwi)}
+                self.test_G_loss = {'adv_fake': self.adv_criterion(test_D_judge, torch.ones_like(test_D_judge))}
+                # self.test_G_loss = {'adv_fake': self.adv_criterion(test_D_judge, torch.ones_like(test_D_judge)),
+                #                     'real_fake': self.img_criterion(self.test_fake_dwi, dwi)}
                 self.test_loss_G = sum(self.test_G_loss.values())
 
                 """ Discriminator """
-                test_D_j_real = self.D(struct)
+                test_D_j_real = self.D(dwi)
                 test_D_j_fake = self.D(self.test_fake_dwi)
                 self.test_D_loss = {'adv_real': self.adv_criterion(test_D_j_real, torch.ones_like(test_D_j_real)),
                                     'adv_fake': self.adv_criterion(test_D_j_fake, torch.zeros_like(test_D_j_fake))}

@@ -15,12 +15,9 @@ class dwi_Trainer(nn.Module):
 
         lr = hyperparameters['lr']
         # Initiate the networks
-        self.multimodal = hyperparameters['multimodal_t1'] or hyperparameters['multimodal_t2']
-        self.mb0 = hyperparameters['multimodal_b0'] > 0
         self.mt1 = hyperparameters['multimodal_t1'] > 0
-        self.mt2 = hyperparameters['multimodal_t2'] > 0
         # input channel로 b0, t1, t2를 사용
-        assert hyperparameters['multimodal_b0'] + hyperparameters['multimodal_t1'] + hyperparameters['multimodal_t2'] == hyperparameters['input_dim']
+        assert hyperparameters['multimodal_t1'] == hyperparameters['input_dim']
         print(hyperparameters['gen']['g_type'])
 
         ### Generator
@@ -97,14 +94,15 @@ class dwi_Trainer(nn.Module):
     def sample(self, data_dict):
         self.gen_a.eval()
         return_dict, in_i = self.prepare_input(data_dict, 0)
-        cond_i = data_dict['cond_1'].to(self.device).float()
-        dwi_i = data_dict['dwi_1'].to(self.device).float()
+        cond_i = data_dict['cond'].to(self.device).float()
+        dwi_i = data_dict['dwi'].to(self.device).float()
         pred_i = self.gen_a.forward(in_i, cond_i)
         loss_dwi = self.recon_criterion(pred_i, dwi_i, False)
         self.gen_a.train()
         return_dict['dwi'] = dwi_i[0, 0].cpu().numpy()
         bvec_vis = cond_i[0].cpu().numpy()
-        return_dict['pred%.1f,%.1f,%.1f[%.1f]' % (bvec_vis[0], bvec_vis[1], bvec_vis[2], bvec_vis[3])] = pred_i[0,0].detach().cpu().numpy()
+        return_dict['pred'] = pred_i[0,0].detach().cpu().numpy()
+        return_dict['grad'] = np.array([bvec_vis[0], bvec_vis[1], bvec_vis[2], bvec_vis[3]])
         return_dict['loss'] = loss_dwi.item()
         return return_dict
 
@@ -112,41 +110,30 @@ class dwi_Trainer(nn.Module):
         nc = 0
         in_i = None
         return_dict = {}
-        return_dict['b0'] = data_dict['b0_%d' % (i + 1)][0,0].detach().cpu().numpy()
-        if self.mb0:
-            nc += 1
-            in_i = data_dict['b0_%d' % (i + 1)].to(self.device).float()
-        if self.mt2:
-            nc += 1
-            t2_i = data_dict['t2_%d' % (i + 1)].to(self.device).float()
-            return_dict['t2'] = t2_i[0, 0].detach().cpu().numpy()
-            if in_i is None:
-                in_i = t2_i
-            else:
-                in_i = torch.cat((in_i, t2_i), dim=1)
         if self.mt1:
             nc += 1
-            t1_i = data_dict['t1_%d' % (i + 1)].to(self.device).float()
+            t1_i = data_dict['t1'].to(self.device).float()
             return_dict['t1'] = t1_i[0, 0].detach().cpu().numpy()
             if in_i is None:
                 in_i = t1_i
             else:
-                in_i = torch.cat((in_i, t1_i), dim=1)
+                in_i = torch.cat((in_i, t1_i), dim=0)
         assert nc >= 1, 'wrong input setting'
         return return_dict, in_i
 
-    def update(self, data_dict, n_dwi,  iterations):
+    def update(self, data_dict, n_dwi, iterations):
         self.gen_opt.zero_grad()
         self.loss_dwi = torch.zeros([]).to(self.device)
         self.loss_g = torch.zeros([]).to(self.device)
         self.loss_d = torch.zeros([]).to(self.device)
         i = 0
         return_dict, in_i = self.prepare_input(data_dict, i)
-        cond_i = data_dict['cond_%d'%(i+1)].to(self.device).float()
-        dwi_i = data_dict['dwi_%d'%(i+1)].to(self.device).float()
+        cond_i = data_dict['cond'].to(self.device).float()
+        dwi_i = data_dict['dwi'].to(self.device).float()
         pred_i = self.gen_a.forward(in_i, cond_i)
         self.loss_dwi += self.l1_w * self.recon_criterion(pred_i, dwi_i, False)
         total_loss = self.loss_dwi
+
         if self.gan_w > 0:
             if self.dis_type == 'unet':
                 self.loss_G_global, self.loss_G_local = self.dis.get_G_loss(in_i, pred_i, cond_i, self.criterionGAN)
@@ -158,9 +145,11 @@ class dwi_Trainer(nn.Module):
             total_loss += self.loss_g
         total_loss.backward()
         self.gen_opt.step()
+        # batch마다 첫번째 dwi, grad 저장해서 visualization
         return_dict['dwi'] = dwi_i[0,0].cpu().numpy()
         bvec_vis = cond_i[0].cpu().numpy()
-        return_dict['pred%.1f,%.1f,%.1f[%.1f]'%(bvec_vis[0], bvec_vis[1], bvec_vis[2],bvec_vis[3])]= pred_i[0,0].detach().cpu().numpy()
+        return_dict['pred']= pred_i[0,0].detach().cpu().numpy()
+        return_dict['grad'] = np.array([bvec_vis[0], bvec_vis[1], bvec_vis[2], bvec_vis[3]])
 
         if self.gan_w > 0:
             if iterations %2 ==0:
@@ -170,8 +159,8 @@ class dwi_Trainer(nn.Module):
                 select_j_list = list(set(np.arange(n_dwi)) - {0})  # unpaired
                 j = select_j_list[np.random.randint(len(select_j_list))]
                 _, in_j = self.prepare_input(data_dict, j)
-                dwi_j = data_dict['dwi_%d' % (j + 1)].to(self.device).float()
-                cond_j = data_dict['cond_%d' % (j + 1)].to(self.device).float()
+                dwi_j = data_dict['dwi'].to(self.device).float()
+                cond_j = data_dict['cond'].to(self.device).float()
                 self.loss_D_global, self.loss_D_local = self.dis.get_D_loss(in_j, dwi_j, cond_j, in_i, pred_i, cond_i, self.criterionGAN)
                 print('Global D: {}, Local D: {}'.format(self.loss_D_global.item(), self.loss_D_local.item()))
                 self.loss_d = 0.5 * (self.loss_D_global + self.loss_D_local) * self.gan_w

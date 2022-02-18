@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-from numpy import inf
 from Blocks import  Conv3dBlock, ResBlocks
 
 ####################### Generator & Discriminator #######################
@@ -46,7 +44,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm3d(256),
             nn.LeakyReLU(0.2),
         )
-        self.LinSig = nn.Sequential(
+        self.LinSigmoid = nn.Sequential(
             nn.Linear(256 * 4 * 4 * 4, 1),
             nn.Sigmoid()
         )
@@ -56,7 +54,7 @@ class Discriminator(nn.Module):
         result = self.Discriminate(dwi)
         result = result.view(-1, 256 * 4 * 4 * 4)
         # output: torch.Size([batch_size, 1])
-        result = self.LinSig(result)
+        result = self.LinSigmoid(result)
         return result
 
 

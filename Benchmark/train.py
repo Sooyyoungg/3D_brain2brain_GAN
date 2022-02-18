@@ -1,8 +1,13 @@
 import sys, os
 import numpy as np
+from matplotlib import pyplot as plt
+import nibabel as nib
+from nilearn import plotting
+
 sys.path.append('..')
 sys.path.append('.')
 import argparse
+import pandas as pd
 from trainer import dwi_Trainer
 from time import time
 import os
@@ -12,65 +17,49 @@ import shutil
 import torch.utils.data
 from utils.visualization import tensorboard_vis
 from utils.utilization import mkdirs, convert, get_config
+from DataSplit import DataSplit
 import matplotlib
 matplotlib.use('Agg')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--config', type=str, default='../configs/smri2dwi.yaml', help='Path to the config file.')
+parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
 parser.add_argument('--data_root', type=str, default='', help='Path to the data, if None, get from config files')
 parser.add_argument("--resume", type=int, default=0)
 opts = parser.parse_args()
-##########################
-# Load experiment setting
-##########################
+
+### Load experiment setting
 config = get_config(opts.config)
 n_epochs = config['n_epoch']
 n_iterations = config['n_iterations']
 display_size = config['display_size']
 batch_size = config['batch_size']
 
-#############################
-# Setup model and data loader
-#############################
-print('* Set up models ...')
-print('---------------------------------------------------------------------')
-
+### Setup model and data loader
 trainer = dwi_Trainer(config)
 trainer.to(trainer.device)
-print('---------------------------------------------------------------------')
 
 n_dwi = config['n_dwi']
-load_b0 = config['multimodal_b0']
-load_t2 = config['multimodal_t2']
 load_t1 = config['multimodal_t1']
 
-print('* Dataset ')
-print('---------------------------------------------------------------------')
-print('- '+ config['dataset'])
-if opts.data_root == '':
-    data_root = config['data_root']
-else:
-    data_root = opts.data_root
-print('* Data root defined in ' + data_root)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 
-file = '../datasets/data_HCP_wuminn/trainval_example.h5'
+train_N = len(train_csv)
+val_N = len(val_csv)
+test_N = len(test_csv)
+# sample data: 128 18 36
+print(train_N, val_N, test_N)
 
-train_dataset = h5Loader(folder=file, pad_size=config['pad_size'], is_train=True, dir_group=n_dwi)
-val_dataset = h5Loader(folder=file,  pad_size=config['pad_size'], is_train=False, dir_group=n_dwi)
+# split
+train_data = DataSplit(data_csv=train_csv, data_dir=config['data_root'], do_transform=True)
+val_data = DataSplit(data_csv=val_csv, data_dir=config['data_root'], do_transform=True)
 
-data_loader_train = torch.utils.data.DataLoader(dataset= train_dataset,
-                                           batch_size=batch_size, shuffle=False,  # shuffle in data loader (speed up)
-                                           num_workers=2,
-                                           pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(dataset= val_dataset,
-                                           batch_size=batch_size, shuffle=False,
-                                           num_workers=2,
-                                           pin_memory=False)
-print('---------------------------------------------------------------------')
+# load
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=False, num_workers=0, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=False, num_workers=0, pin_memory=False)
 
-#################################
-# Setup logger and output folders
-#################################
+### Setup logger and output folders
 log_dir = config['log_dir']
 if not os.path.exists(log_dir):
     print('* Creating log directory: ' + log_dir)
@@ -130,7 +119,7 @@ while epoch < n_epochs or iterations < n_iterations:
         iterations = it + epoch*len(data_loader_train)
         # 학습 시간 출력
         start = time()
-        train_dict = trainer.update(data, n_dwi, iterations)
+        train_dict = trainer.update(data, n_dwi, iterations)     # : (64, 64, 64)
         end = time()
         update_t = end - start
 
@@ -156,20 +145,41 @@ while epoch < n_epochs or iterations < n_iterations:
             with torch.no_grad():
                 data_test = next(iter(data_loader_val))
                 test_ret = trainer.sample(data_test)
-                imgs_vis = [test_ret[k] for k in test_ret.keys() if isinstance(test_ret[k], np.ndarray)]
-                imgs_titles = list(test_ret.keys())
-                print(imgs_titles)
-                cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
-                writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='val/',
-                                         num_row=2, img_list=imgs_vis, cmaps=cmaps,
-                                         titles=imgs_titles, resize=True)
+                # print(imgs_titles)
+                # cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
+                # writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='val/',
+                #                          num_row=2, img_list=imgs_vis, cmaps=cmaps,
+                #                          titles=imgs_titles, resize=True)
+                #
+                # imgs_vis = [train_dict[k] for k in train_dict.keys()]
+                # imgs_titles = list(train_dict.keys())
+                # cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
+                # writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='train/',
+                #                          num_row=2, img_list=imgs_vis, cmaps=cmaps,
+                #                          titles=imgs_titles, resize=True)
 
-                imgs_vis = [train_dict[k] for k in train_dict.keys()]
-                imgs_titles = list(train_dict.keys())
-                cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
-                writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='train/',
-                                         num_row=2, img_list=imgs_vis, cmaps=cmaps,
-                                         titles=imgs_titles, resize=True)
+                # (64, 64, 64) (64, 64, 64) (64, 64, 64) (4,)
+                # print(train_dict['t1'].shape, train_dict['dwi'].shape, train_dict['pred'].shape, train_dict['grad'].shape)
+
+                # Save generated image - Training data
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:,32], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:,32], cmap='gray')
+
+                # Save generated image - Testing data
+                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :, 32], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :, 32], cmap='gray')
+
+                # Visualize generated image
+                # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))
+                # feat = nib.Nifti1Image(feat, affine=np.eye(4))
+                # plotting.plot_anat(feat, title="Real_imgs", cut_coords=(32, 32, 32))
+                # plotting.show()
+                #
+                # feat_f = np.squeeze((0.5 * train_dict['pred'] + 0.5))
+                # feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
+                # plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
+                # plotting.show()
+
 
     # Save network weights
     if (epoch + 1) % config['snapshot_save_iter'] == 0:

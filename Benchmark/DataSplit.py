@@ -27,7 +27,12 @@ class DataSplit(Dataset):
             self.count = 0
         if index != 0 and index % self.data_num == 0:
             self.count += 1
-        sub = self.data_csv.iloc[self.count][1]
+        #print(self.count, index)
+        try:
+            sub = self.data_csv.iloc[self.count][1]
+        except:
+            print("Error")
+            print(self.count, index)
 
         ### Structure & diffusion-weighted image
         struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
@@ -55,9 +60,9 @@ class DataSplit(Dataset):
         if self.do_transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
-            grad = transforms.ToTensor(grad)
+            #grad = self.transform(grad)
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
 
-        return struct, dwi, grad
+        return {"t1": struct, "dwi": dwi, "cond": grad}

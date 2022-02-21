@@ -25,7 +25,7 @@ step_size: 100000             # how often to decay learning rate
 gamma: 0.5                    # how much to decay learning rate
 
 l1_w : 100.                   # weight of L1 loss
-gan_w: 1.                     # weight of GAN loss
+gan_w: 1.                     # weight of DCGAN loss
 multimodal_b0: 0              # input channel: b0
 multimodal_t1: 1              # input channel: T1
 multimodal_t2: 0              # input channel: T2
@@ -47,7 +47,7 @@ dis:
   norm: none                  # normalization layer [none/bn/in/ln]
   activ: lrelu                # activation function [relu/lrelu/prelu/selu/tanh]
   n_layer: 2                  # number of layers in D
-  gan_type: lsgan             # GAN loss [lsgan/nsgan]
+  gan_type: lsgan             # DCGAN loss [lsgan/nsgan]
   num_scales: 1               # number of scales
   pad_type: reflect           # padding type [zero/reflect]
   d_type: unet                # Discriminator type [Unet]

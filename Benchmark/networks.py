@@ -89,7 +89,7 @@ class ResAdaInGen(SimpleAdaInGen):
 # Discriminator
 ##################################################################################
 class GANLoss(nn.Module):
-    """Define different GAN objectives.
+    """Define different DCGAN objectives.
     The GANLoss class abstracts away the need to create the target label tensor
     that has the same size as the input.
     """
@@ -97,7 +97,7 @@ class GANLoss(nn.Module):
     def __init__(self, gan_mode, target_real_label=1.0, target_fake_label=0.0):
         """ Initialize the GANLoss class.
         Parameters:
-            gan_mode (str) - - the type of GAN objective. It currently supports vanilla, lsgan, and wgangp.
+            gan_mode (str) - - the type of DCGAN objective. It currently supports vanilla, lsgan, and wgangp.
             target_real_label (bool) - - label for a real image
             target_fake_label (bool) - - label of a fake image
         Note: Do not use sigmoid as the last layer of Discriminator.
@@ -244,7 +244,7 @@ class Unet_Discriminator(nn.Module):
 
 
     def get_D_loss(self, input_real, real_img, real_bvec, input_fake, fake_img, fake_bvec, criterionGAN):
-        """Calculate GAN loss for the discriminator"""
+        """Calculate DCGAN loss for the discriminator"""
         #input: b0
         #real_img: target dwi,
         #real_bvec: bvec for real_img
@@ -267,7 +267,7 @@ class Unet_Discriminator(nn.Module):
         return loss_D_global, loss_D_local
 
     def get_G_loss(self, input, fake_img, fake_emb, criterionGAN):
-        """Calculate GAN loss for the generator"""
+        """Calculate DCGAN loss for the generator"""
         # G(A) should fake the discriminator
         fake_AB = torch.cat((input, fake_img), dim=1)
         pred_fake_pix, pred_fake_img = self.forward(fake_AB, fake_emb)

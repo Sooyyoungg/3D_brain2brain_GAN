@@ -55,11 +55,11 @@ class dwi_Trainer(nn.Module):
 
         self.loss_dwi = torch.zeros([]).to(self.device) # L1 loss initialize
         self.l1_w = hyperparameters['l1_w'] #L1 weight
-        self.gan_w = hyperparameters['gan_w'] #GAN weight
+        self.gan_w = hyperparameters['gan_w'] #DCGAN weight
 
         ### Discriminator
         if self.gan_w > 0:
-            print('GAN with {} discriminator'.format(hyperparameters['dis']['d_type']))
+            print('DCGAN with {} discriminator'.format(hyperparameters['dis']['d_type']))
             self.dis_type = hyperparameters['dis']['d_type']
             self.dis = Unet_Discriminator(hyperparameters['dis']['in_dim'], ndf=hyperparameters['dis']['dim'],
                                           n_layers=hyperparameters['dis']['n_layer'], n_latent=2, embed=True, device=self.device)

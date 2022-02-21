@@ -15,6 +15,7 @@ class GAN_3D(nn.Module):
         super(GAN_3D, self).__init__()
         self.config = config
         self.gpu = config.gpu
+        self.device = torch.device('cuda:' + str(config.gpu[0]) if torch.cuda.is_available() else 'cpu')
         self.mode = config.mode
         self.restore = config.restore
         self.tot_epoch = config.epoch
@@ -143,8 +144,8 @@ class GAN_3D(nn.Module):
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
-                struct = struct.cuda().float()
-                self.dwi = dwi.cuda().float()
+                struct = struct.to(self.device).float()
+                self.dwi = dwi.to(self.device).float()
                 self.fake_dwi = self.G(struct)
 
                 """ Generator """
@@ -213,8 +214,8 @@ class GAN_3D(nn.Module):
     def test(self):
         with torch.no_grad():
             for i, (struct, dwi, grad) in enumerate(self.test_data):
-                struct = struct.cuda()
-                dwi = dwi.cuda()
+                struct = struct.to(self.device)
+                dwi = dwi.to(self.device)
                 self.test_fake_dwi = self.G(struct)
 
                 """ Generator """

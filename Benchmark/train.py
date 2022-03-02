@@ -21,6 +21,8 @@ from DataSplit import DataSplit
 import matplotlib
 matplotlib.use('Agg')
 
+print("<<<<<<<<<<<<<Benchmark model>>>>>>>>>>>>>")
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
 parser.add_argument('--data_root', type=str, default='', help='Path to the data, if None, get from config files')

@@ -7,6 +7,8 @@ from Config import Config
 from DataSplit import DataSplit
 from model import GAN_3D
 
+print("<<<<<<<<<<<<<DCGAN model>>>>>>>>>>>>>")
+
 device = torch.device('cuda:'+str(Config.gpu[0]) if torch.cuda.is_available() else 'cpu')
 print(device)
 
@@ -21,7 +23,7 @@ test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/da
 train_N = len(train_csv)
 val_N = len(val_csv)
 test_N = len(test_csv)
-# sample data: 128 18 36
+# sample subjects data: 128 18 36
 print(train_N, val_N, test_N)
 
 # split
@@ -31,10 +33,6 @@ val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=Tr
 #print(torch.min(s), torch.max(s))
 #print(torch.min(d), torch.max(d))
 #print(d.shape, g.shape)
-
-#ss, dd, gg = train_data.__getitem__(700)
-#print(gg)
-#print(dd.shape, gg.shape)
 
 # 13184 1854
 #print(train_data.__len__(), val_data.__len__())

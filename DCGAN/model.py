@@ -102,9 +102,12 @@ class GAN_3D(nn.Module):
     def save_img(self, epoch, save_num=5):
         # for i in range(save_num):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-        #     sio.savemat(os.path.join(self.config.img_dir, '{:04d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)), self.dwi[0].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[0].detach().cpu().numpy(), cmap='gray')
+        #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)),
+                   np.squeeze((0.5 * self.dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)),
+                   np.squeeze((0.5 * self.fake_dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
@@ -172,7 +175,7 @@ class GAN_3D(nn.Module):
             print('Time for an epoch: ', time.time() - epoch_time)
 
             """ Validation """
-            if epoch % 100 == 0:
+            if epoch % 100 == 0 or epoch == 1:
                 with torch.no_grad():
                     self.valid(self.valid_data, epoch)
 
@@ -189,12 +192,13 @@ class GAN_3D(nn.Module):
         self.writer.close()
 
     def valid(self, valid_data, epoch):
+        print("Validation Start!")
         with torch.no_grad():
             self.G.eval()
-
             val_losses = 0.0
-            v_i = 0
-            for v_i, (v_str, v_dwi, v_grad) in enumerate(valid_data):
+            for v_i, (v_str, v_dwi, v_grad) in enumerate(self.valid_data):
+                v_str = v_str.to(self.device).float()
+                v_dwi = v_dwi.to(self.device).float()
                 v_fake_dwi = self.G(v_str)
                 val_losses += self.img_criterion(v_fake_dwi, v_dwi)
             val_avg_loss = val_losses / float(v_i + 1.0)
@@ -204,9 +208,9 @@ class GAN_3D(nn.Module):
                 # save loss value
                 self.val_loss = val_avg_loss
                 # save model info & image
-                self.save_log(epoch)
-                self.save_img(save_num=3)
-                self.save_model(epoch)
+                #self.save_log(epoch)
+                #self.save_img(save_num=3)
+                #self.save_model(epoch)
 
                 print("======= The highest validation score! =======")
                 print('epoch: {:04d}, loss_valid for Generator: {:.6f}'.format(epoch, self.val_loss))
@@ -214,8 +218,8 @@ class GAN_3D(nn.Module):
     def test(self):
         with torch.no_grad():
             for i, (struct, dwi, grad) in enumerate(self.test_data):
-                struct = struct.to(self.device)
-                dwi = dwi.to(self.device)
+                struct = struct.to(self.device).float()
+                dwi = dwi.to(self.device).float()
                 self.test_fake_dwi = self.G(struct)
 
                 """ Generator """

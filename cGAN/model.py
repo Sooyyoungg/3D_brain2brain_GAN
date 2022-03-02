@@ -15,6 +15,7 @@ class I2I_cGAN(nn.Module):
         super(I2I_cGAN, self).__init__()
         self.config = config
         self.gpu = config.gpu
+        self.device = torch.device('cuda:' + str(config.gpu[0]) if torch.cuda.is_available() else 'cpu')
         self.mode = config.mode
         self.restore = config.restore
         self.tot_epoch = config.epoch
@@ -102,8 +103,8 @@ class I2I_cGAN(nn.Module):
         # for i in range(save_num):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), self.dwi[0].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[0].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), np.squeeze((0.5 * self.dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), np.squeeze((0.5 * self.fake_dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
@@ -144,9 +145,9 @@ class I2I_cGAN(nn.Module):
                     print("Training diffusion-weighted image shape: ", dwi.shape)
                     print("Training gradient vector shape: ", grad.shape)
 
-                struct = struct.cuda().float()
-                self.dwi = dwi.cuda().float()
-                grad = grad.cuda().float()
+                struct = struct.to(self.device).float()
+                self.dwi = dwi.to(self.device).float()
+                grad = grad.to(self.device).float()
                 self.fake_dwi = self.G(struct, grad)
 
                 """ Generator """
@@ -173,7 +174,7 @@ class I2I_cGAN(nn.Module):
             print('Time for an epoch: ', time.time() - epoch_time)
 
             """ Validation """
-            if epoch % 100 == 0:
+            if epoch % 100 == 0 or epoch == 1:
                 with torch.no_grad():
                     self.valid(self.valid_data, epoch)
 
@@ -190,13 +191,15 @@ class I2I_cGAN(nn.Module):
         self.writer.close()
 
     def valid(self, valid_data, epoch):
+        print("Validation Start!")
         with torch.no_grad():
             self.G.eval()
-
             val_losses = 0.0
-            v_i = 0
-            for v_i, (v_str, v_dwi, v_grad) in enumerate(valid_data):
-                v_fake_dwi = self.G(v_str)
+            for v_i, (v_str, v_dwi, v_grad) in enumerate(self.valid_data):
+                v_str = v_str.to(self.device).float()
+                v_dwi = v_dwi.to(self.device).float()
+                v_grad = v_grad.to(self.device).float()
+                v_fake_dwi = self.G(v_str, v_grad)
                 val_losses += self.img_criterion(v_fake_dwi, v_dwi)
             val_avg_loss = val_losses / float(v_i + 1.0)
 
@@ -205,19 +208,18 @@ class I2I_cGAN(nn.Module):
                 # save loss value
                 self.val_loss = val_avg_loss
                 # save model info & image
-                self.save_log(epoch)
-                self.save_img(save_num=3)
-                self.save_model(epoch)
-
+                #self.save_log(epoch)
+                #self.save_img(save_num=3)
+                #self.save_model(epoch)
                 print("======= The highest validation score! =======")
                 print('epoch: {:04d}, loss_valid for Generator: {:.6f}'.format(epoch, self.val_loss))
 
     def test(self):
         with torch.no_grad():
             for i, (struct, dwi, grad) in enumerate(self.test_data):
-                struct = struct.cuda()
-                dwi = dwi.cuda()
-                grad = grad.cuda()
+                struct = struct.to(self.device).float()
+                dwi = dwi.to(self.device).float()
+                grad = grad.to(self.device).float()
                 self.test_fake_dwi = self.G(struct, grad)
 
                 """ Generator """

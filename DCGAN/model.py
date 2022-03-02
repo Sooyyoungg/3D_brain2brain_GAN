@@ -177,7 +177,7 @@ class GAN_3D(nn.Module):
             """ Validation """
             if epoch % 100 == 0 or epoch == 1:
                 with torch.no_grad():
-                    self.valid(self.valid_data, epoch)
+                    self.valid(epoch)
 
             # if epoch % 100 == 0:
             #    self.save_log(epoch)
@@ -191,7 +191,7 @@ class GAN_3D(nn.Module):
         print('Total Training Time: ', time.time() - start_time)
         self.writer.close()
 
-    def valid(self, valid_data, epoch):
+    def valid(self, epoch):
         print("Validation Start!")
         with torch.no_grad():
             self.G.eval()

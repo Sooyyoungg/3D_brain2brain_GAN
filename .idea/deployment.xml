@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="On explicit save action" remoteFilesAllowedToDisappearOnAutoupload="false" autoUploadExternalChanges="true">
     <serverData>
-      <paths name="conmaster@localhost:6000 key (2)">
+      <paths name="conmaster@localhost:6000 key">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/connectome/conmaster/Pycharm_projects/GAN_study" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN" local="$PROJECT_DIR$" web="/" />
+            <mapping local="" />
           </mappings>
         </serverdata>
       </paths>
     </serverData>
-    <option name="myAutoUpload" value="ALWAYS" />
+    <option name="myAutoUpload" value="ON_EXPLICIT_SAVE" />
   </component>
 </project>

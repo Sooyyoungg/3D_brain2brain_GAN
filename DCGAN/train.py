@@ -38,8 +38,8 @@ val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=Tr
 #print(train_data.__len__(), val_data.__len__())
 
 # load
-data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=False, num_workers=0, pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=False, num_workers=0, pin_memory=False)
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=False, num_workers=16, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=False, num_workers=16, pin_memory=False)
 
 # 412 58
 print(len(data_loader_train), len(data_loader_val))

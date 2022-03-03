@@ -5,9 +5,9 @@ import torch
 
 from Config import Config
 from DataSplit import DataSplit
-from model import GAN_3D
+from model import StarGAN
 
-print("<<<<<<<<<<<<<Style GAN model>>>>>>>>>>>>>")
+print("<<<<<<<<<<<<<Star GAN model>>>>>>>>>>>>>")
 
 device = torch.device('cuda:'+str(Config.gpu[0]) if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -38,5 +38,5 @@ data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_
 print(len(data_loader_train), len(data_loader_val))
 
 ### model
-model = GAN_3D([data_loader_train, data_loader_val], config)
+model = StarGAN([data_loader_train, data_loader_val], config)
 model.train()

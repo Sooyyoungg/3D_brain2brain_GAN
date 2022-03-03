@@ -10,9 +10,9 @@ import scipy.io as sio
 from tensorboardX import SummaryWriter
 from networks import Generator, Discriminator
 
-class I2I_cGAN(nn.Module):
+class GAN_3D(nn.Module):
     def __init__(self, dataset, config):
-        super(I2I_cGAN, self).__init__()
+        super(GAN_3D, self).__init__()
         self.config = config
         self.gpu = config.gpu
         self.device = torch.device('cuda:' + str(config.gpu[0]) if torch.cuda.is_available() else 'cpu')
@@ -103,8 +103,11 @@ class I2I_cGAN(nn.Module):
         # for i in range(save_num):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), np.squeeze((0.5 * self.dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), np.squeeze((0.5 * self.fake_dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)),
+                   np.squeeze((0.5 * self.dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)),
+                   np.squeeze((0.5 * self.fake_dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
@@ -119,8 +122,8 @@ class I2I_cGAN(nn.Module):
         plotting.show()
 
     def save_model(self, epoch):
-        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:06d}.pth'.format(epoch)))
-        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:06d}.pth'.format(epoch)))
+        torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(epoch)))
+        torch.save({key: val.cpu() for key, val in self.D.state_dict().items()}, os.path.join(self.config.model_dir, 'D_iter_{:04d}.pth'.format(epoch)))
 
     ### Train & Test functions
     def train(self, **kwargs):
@@ -140,18 +143,16 @@ class I2I_cGAN(nn.Module):
             self.D_lr_scheduler.step()
 
             for i, (struct, dwi, grad) in enumerate(self.train_data):
-                if i == 0 and epoch == 1:
+                if epoch == 1 and i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
-                    print("Training gradient vector shape: ", grad.shape)
 
                 struct = struct.to(self.device).float()
                 self.dwi = dwi.to(self.device).float()
-                grad = grad.to(self.device).float()
-                self.fake_dwi = self.G(struct, grad)
+                self.fake_dwi = self.G(struct)
 
                 """ Generator """
-                D_judge = self.D(self.fake_dwi)
+                D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
                 self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
                 #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
                 #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
@@ -179,12 +180,12 @@ class I2I_cGAN(nn.Module):
                     self.valid(epoch)
 
             # if epoch % 100 == 0:
-            #     self.save_log(epoch)
+            #    self.save_log(epoch)
 
             if epoch % 1 == 0:
                 self.vis_img(dwi, self.fake_dwi)
                 self.save_img(epoch)
-                # self.save_model(epoch)
+                #self.save_model(epoch)
 
         print('Finish training !!!')
         print('Total Training Time: ', time.time() - start_time)
@@ -198,8 +199,7 @@ class I2I_cGAN(nn.Module):
             for v_i, (v_str, v_dwi, v_grad) in enumerate(self.valid_data):
                 v_str = v_str.to(self.device).float()
                 v_dwi = v_dwi.to(self.device).float()
-                v_grad = v_grad.to(self.device).float()
-                v_fake_dwi = self.G(v_str, v_grad)
+                v_fake_dwi = self.G(v_str)
                 val_losses += self.img_criterion(v_fake_dwi, v_dwi)
             val_avg_loss = val_losses / float(v_i + 1.0)
 
@@ -211,6 +211,7 @@ class I2I_cGAN(nn.Module):
                 #self.save_log(epoch)
                 #self.save_img(save_num=3)
                 #self.save_model(epoch)
+
                 print("======= The highest validation score! =======")
                 print('epoch: {:04d}, loss_valid for Generator: {:.6f}'.format(epoch, self.val_loss))
 
@@ -219,8 +220,7 @@ class I2I_cGAN(nn.Module):
             for i, (struct, dwi, grad) in enumerate(self.test_data):
                 struct = struct.to(self.device).float()
                 dwi = dwi.to(self.device).float()
-                grad = grad.to(self.device).float()
-                self.test_fake_dwi = self.G(struct, grad)
+                self.test_fake_dwi = self.G(struct)
 
                 """ Generator """
                 test_D_judge = self.D(self.test_fake_dwi)

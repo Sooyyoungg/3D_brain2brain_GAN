@@ -1,9 +1,9 @@
 
 class Config:
-    data_dir = '/scratch/connectome/GANBERT/data/sample/sample_final'
-    model_dir = '/home/connectome/conmaster/Pycharm_projects/3D_I2I_GAN/cGAN/model'
-    log_dir = '/home/connectome/conmaster/Pycharm_projects/3D_I2I_GAN/cGAN/log'
-    img_dir = '/home/connectome/conmaster/Pycharm_projects/3D_I2I_GAN/cGAN/Generated_images'
+    data_dir = '/storage/connectome/GANBERT/data/sample/sample_final'
+    model_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/model'
+    log_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/log'
+    img_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/Generated_images'
 
     gpu = [0]
     mode = 'train'

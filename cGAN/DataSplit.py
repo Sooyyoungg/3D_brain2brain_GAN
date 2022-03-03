@@ -34,7 +34,7 @@ class DataSplit(Dataset):
 
         dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (64, 64, 64, 103)
         dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))             # (103, 64, 64, 64)
-        dwi = dwi_total[index % 103, :, :, :]
+        dwi = dwi_total[index % 103, :, :, :]                       # (1, 64, 64, 64)
 
         ### Gradient
         grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
@@ -46,7 +46,7 @@ class DataSplit(Dataset):
             one_grad = grad_n[i].split(' ')
             gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
         grad_total = np.array(gg)
-        grad = grad_total[index % 103]
+        grad = grad_total[index % 103]  # (4)
 
         # random example
         #struct = np.random.random_sample((64, 64, 64))
@@ -59,5 +59,6 @@ class DataSplit(Dataset):
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
+        grad = grad.reshape((1, 4))
 
         return struct, dwi, grad

@@ -59,6 +59,6 @@ class DataSplit(Dataset):
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
-        grad = grad.reshape((1, 4))
+        # grad = grad.reshape((1, 4))
 
         return struct, dwi, grad

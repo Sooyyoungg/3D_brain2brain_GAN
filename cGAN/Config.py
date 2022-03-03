@@ -1,6 +1,6 @@
 
 class Config:
-    data_dir = '/storage/connectome/GANBERT/data/sample/sample_final'
+    data_dir = '/scratch/connectome/GANBERT/data/sample_final'
     model_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/model'
     log_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/log'
     img_dir = '/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/cGAN/Generated_images'

@@ -96,9 +96,10 @@ class Decoder(nn.Module):
         ### Gradient mapping space
         self.grad_input_dim = 4
         self.grad_output_dim = 1 * 4 * 4 * 4
-        self.grad_fc = 4
+        self.grad_fc = 6
 
         self.grad_mapping = []
+        # (batch_size, 4) -> (batch_size, 256)
         for i in range(self.grad_fc):
             self.grad_mapping += [nn.Linear(self.grad_input_dim, self.grad_input_dim * 2)]
             self.grad_input_dim *= 2
@@ -106,15 +107,15 @@ class Decoder(nn.Module):
 
         ### Generate fake image
         self.output_dim = 1
-        self.dim = 129
+        self.dim = 132
         self.n_upsample = 4
         self.n_res = 2
 
         self.model = []
-        # (128, 4, 4, 4) -> (128, 4, 4, 4)
+        # (132, 4, 4, 4) -> (132, 4, 4, 4)
         self.model += [ResBlocks(self.n_res, self.dim, res_norm, activ, pad_type=pad_type)]
         # upsampling blocks
-        # (128, 4, 4, 4) -> (64, 8, 8, 8) -> (32, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
+        # (132, 4, 4, 4) -> (66, 8, 8, 8) -> (33, 16, 16, 16) -> (16, 32, 32, 32) -> (8, 64, 64, 64)
         for i in range(self.n_upsample):
             self.model += [nn.Upsample(scale_factor=2, mode='nearest'),
                            Conv3dBlock(self.dim, self.dim // 2, 5, 1, 2, norm='bn', activation='relu', pad_type=pad_type)]
@@ -129,9 +130,8 @@ class Decoder(nn.Module):
         self.model = nn.Sequential(*self.model)
 
     def forward(self, x, gradient):
-        batch_size = Config.batch_size
-        gradient = self.grad_mapping(gradient)  # torch.Size([8, 1, 64])
-        gradient = torch.reshape(gradient, [batch_size, 1, 4, 4, 4])
+        gradient = self.grad_mapping(gradient)
+        gradient = torch.reshape(gradient, [gradient.shape[0], 4, 4, 4, 4])
         x = torch.cat([x, gradient], dim=1)
         # Decoder output: torch.Size([batch_size, 1, 64, 64, 64])
         output = self.model(x)

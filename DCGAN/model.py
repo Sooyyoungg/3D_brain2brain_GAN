@@ -104,9 +104,9 @@ class GAN_3D(nn.Module):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
         plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)),
-                   np.squeeze((0.5 * self.dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+                   self.dwi[0,0,:,:,:].detach().cpu().numpy(), cmap='gray')
         plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)),
-                   np.squeeze((0.5 * self.fake_dwi[0] + 0.5).detach().cpu().numpy()), cmap='gray')
+                   self.fake_dwi[0,0,:,:,:].detach().cpu().numpy(), cmap='gray')
 
 
     def vis_img(self, real_imgs, fake_imgs):
@@ -118,7 +118,7 @@ class GAN_3D(nn.Module):
 
         feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
-        plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
+        plotting.plot_anat(feat_f, title="DCGAN_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
     def save_model(self, epoch):
@@ -182,7 +182,7 @@ class GAN_3D(nn.Module):
             # if epoch % 100 == 0:
             #    self.save_log(epoch)
 
-            if epoch % 1 == 0:
+            if epoch % 10 == 0:
                 self.vis_img(dwi, self.fake_dwi)
                 self.save_img(epoch)
                 #self.save_model(epoch)

@@ -27,7 +27,6 @@ class DataSplit(Dataset):
             self.count = 0
         if index != 0 and index % self.data_num == 0:
             self.count += 1
-        print(self.count)
         sub = self.data_csv.iloc[self.count][1]
 
         ### Structure & diffusion-weighted image

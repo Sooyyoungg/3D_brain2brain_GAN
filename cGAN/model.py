@@ -150,25 +150,25 @@ class I2I_cGAN(nn.Module):
                 grad = grad.to(self.device).float()
                 self.fake_dwi = self.G(struct, grad)
 
-                """ Generator """
-                D_judge = self.D(self.fake_dwi)
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
-                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
-                self.loss_G = sum(self.G_loss.values())
-                self.opt_G.zero_grad()
-                self.loss_G.backward()
-                self.opt_G.step()
-
-                """ Discriminator """
-                D_j_real = self.D(self.dwi)
-                D_j_fake = self.D(self.fake_dwi.detach())
-                self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
-                               'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
-                self.loss_D = sum(self.D_loss.values())
-                self.opt_D.zero_grad()
-                self.loss_D.backward()
-                self.opt_D.step()
+                # """ Generator """
+                # D_judge = self.D(self.fake_dwi)
+                # self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
+                # #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
+                # #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
+                # self.loss_G = sum(self.G_loss.values())
+                # self.opt_G.zero_grad()
+                # self.loss_G.backward()
+                # self.opt_G.step()
+                #
+                # """ Discriminator """
+                # D_j_real = self.D(self.dwi)
+                # D_j_fake = self.D(self.fake_dwi.detach())
+                # self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
+                #                'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
+                # self.loss_D = sum(self.D_loss.values())
+                # self.opt_D.zero_grad()
+                # self.loss_D.backward()
+                # self.opt_D.step()
 
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)

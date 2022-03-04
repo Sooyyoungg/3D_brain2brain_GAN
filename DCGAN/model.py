@@ -104,9 +104,9 @@ class GAN_3D(nn.Module):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
         plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)),
-                   self.dwi[0,0,:,:,:].detach().cpu().numpy(), cmap='gray')
+                   self.dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
         plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)),
-                   self.fake_dwi[0,0,:,:,:].detach().cpu().numpy(), cmap='gray')
+                   self.fake_dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
 
 
     def vis_img(self, real_imgs, fake_imgs):

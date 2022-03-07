@@ -8,9 +8,9 @@ import nibabel as nib
 from nilearn import plotting
 import scipy.io as sio
 from tensorboardX import SummaryWriter
-from networks import Generator, Discriminator
+from networks import Generator, Discriminator, MappingNetwork, StyleEncoder
 
-class GAN_3D(nn.Module):
+class StarGAN(nn.Module):
     def __init__(self, dataset, config):
         super(GAN_3D, self).__init__()
         self.config = config
@@ -32,6 +32,8 @@ class GAN_3D(nn.Module):
         # init networks
         self.G = Generator()
         self.D = Discriminator()
+        self.MapNet = MappingNetwork()
+        self.StyleEncoder = StyleEncoder()
 
         self.adv_criterion = torch.nn.BCELoss()
         self.img_criterion = torch.nn.L1Loss()
@@ -128,10 +130,16 @@ class GAN_3D(nn.Module):
     ### Train & Test functions
     def train(self, **kwargs):
         self.writer = SummaryWriter(self.config.log_dir)
+        # optimizer
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config.G_lr, betas=(0.5, 0.999))
         self.opt_D = torch.optim.Adam(self.D.parameters(), lr=self.config.D_lr, betas=(0.5, 0.999))
+        self.opt_M = torch.optim.Adam(self.MapNet.parameters(), lr=self.config.M_lr, betas=(0.5, 0.999))
+        self.opt_S = torch.optim.Adam(self.StyleEncoder.parameters(), lr=self.config.S_lr, betas=(0.5, 0.999))
+        # learning rate
         self.G_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_G, step_size=self.config.epoch, gamma=self.config.gamma)
         self.D_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_D, step_size=self.config.epoch, gamma=self.config.gamma)
+        self.M_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_M, step_size=self.config.epoch, gamma=self.config.gamma)
+        self.S_lr_scheduler = torch.optim.lr_scheduler.StepLR(self.opt_S, step_size=self.config.epoch, gamma=self.config.gamma)
 
         self.val_loss = 0.0
 
@@ -142,31 +150,52 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, (struct, dwi, grad) in enumerate(self.train_data):
+            for i, (struct, dwi, grad_trg, grad_ref) in enumerate(self.train_data):
                 if epoch == 1 and i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
 
                 struct = struct.to(self.device).float()
-                self.dwi = dwi.to(self.device).float()
-                self.fake_dwi = self.G(struct)
+                dwi = dwi.to(self.device).float()
+                grad_trg = grad_trg.to(self.device).float()
+                grad_ref = grad_ref.to(self.device).float()
 
-                """ Generator """
-                D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
-                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
-                self.loss_G = sum(self.G_loss.values())
+                ### Generator ###
+                """ Style Reconstruction Loss"""
+                style_trg = self.MapNet(grad_trg)
+                self.fake_dwi_trg = self.G(struct, style_trg)
+                # Style extracted from fake dwi (fake_dwi_trg)
+                style_from_fake = self.StyleEncoder(self.fake_dwi_trg)
+                SR_loss = (style_trg, style_from_fake)
+
+                """ Diversity Sensitive Loss"""
+                style_ref = self.MapNet(grad_ref)
+                self.fake_dwi_ref = self.G(struct, style_ref)
+                DS_loss = (self.fake_dwi_trg, self.fake_dwi_ref)
+
+                """ Cycle Consistency Loss """
+                # Style for structure image : latent vector in Gaussian space
+                style_struct =  # Gaussian space에서 임의로 벡터 뽑기
+                # fake structure image generated from fake dwi (fake_dwi_trg)
+                struct_from_fake = self.G(self.fake_dwi_trg, style_struct)
+                CC_loss = (struct, struct_from_fake)
+
+                """ Total Loss """
+                self.loss_G = SR_loss - DS_loss + CC_loss
                 self.opt_G.zero_grad()
+                self.opt_M.zero_grad()
+                self.opt_S.zero_grad()
                 self.loss_G.backward()
                 self.opt_G.step()
+                self.opt_M.step()
+                self.opt_S.step()
 
-                """ Discriminator """
-                D_j_real = self.D(self.dwi)
-                D_j_fake = self.D(self.fake_dwi.detach())
-                self.D_loss = {'adv_real': self.adv_criterion(D_j_real, torch.ones_like(D_j_real)),
-                               'adv_fake': self.adv_criterion(D_j_fake, torch.zeros_like(D_j_fake))}
-                self.loss_D = sum(self.D_loss.values())
+                ### Discriminator - Adversarial Loss ###
+                D_real = self.D(dwi)
+                D_fake = self.D(self.fake_dwi_trg)
+                AD_loss = {'adv_struct': self.adv_criterion(D_real, torch.ones_like(D_real)),
+                           'adv_target': self.adv_criterion(D_fake, torch.zeros_like(D_fake))}
+                self.loss_D = sum(AD_loss.values())
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()

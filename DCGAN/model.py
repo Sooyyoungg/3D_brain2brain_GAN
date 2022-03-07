@@ -103,22 +103,22 @@ class GAN_3D(nn.Module):
         # for i in range(save_num):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_real.png'.format(epoch)),
-                   self.dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'GAN_{:04d}_fake.png'.format(epoch)),
-                   self.fake_dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'DCGAN_{:04d}_real.png'.format(epoch)),
+                   self.dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'DCGAN_{:04d}_fake.png'.format(epoch)),
+                   self.fake_dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
 
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
         feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
-        plotting.plot_anat(feat, title="Real_imgs", cut_coords=(32, 32, 32))
+        plotting.plot_anat(feat, title="DCGAN_Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
         feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
-        plotting.plot_anat(feat_f, title="DCGAN_imgs", cut_coords=(32, 32, 32))
+        plotting.plot_anat(feat_f, title="DCGAN_fake_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
     def save_model(self, epoch):
@@ -142,7 +142,7 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, (struct, dwi, grad) in enumerate(self.train_data):
+            for i, (struct, dwi) in enumerate(self.train_data):
                 if epoch == 1 and i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
@@ -174,6 +174,10 @@ class GAN_3D(nn.Module):
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)
 
+            self.vis_img(dwi, self.fake_dwi)
+            self.save_img(epoch)
+            # self.save_model(epoch)
+
             """ Validation """
             if epoch % 100 == 0 or epoch == 1:
                 with torch.no_grad():
@@ -181,11 +185,6 @@ class GAN_3D(nn.Module):
 
             # if epoch % 100 == 0:
             #    self.save_log(epoch)
-
-            if epoch % 10 == 0:
-                self.vis_img(dwi, self.fake_dwi)
-                self.save_img(epoch)
-                #self.save_model(epoch)
 
         print('Finish training !!!')
         print('Total Training Time: ', time.time() - start_time)
@@ -196,7 +195,7 @@ class GAN_3D(nn.Module):
         with torch.no_grad():
             self.G.eval()
             val_losses = 0.0
-            for v_i, (v_str, v_dwi, v_grad) in enumerate(self.valid_data):
+            for v_i, (v_str, v_dwi) in enumerate(self.valid_data):
                 v_str = v_str.to(self.device).float()
                 v_dwi = v_dwi.to(self.device).float()
                 v_fake_dwi = self.G(v_str)
@@ -217,7 +216,7 @@ class GAN_3D(nn.Module):
 
     def test(self):
         with torch.no_grad():
-            for i, (struct, dwi, grad) in enumerate(self.test_data):
+            for i, (struct, dwi) in enumerate(self.test_data):
                 struct = struct.to(self.device).float()
                 dwi = dwi.to(self.device).float()
                 self.test_fake_dwi = self.G(struct)

@@ -58,8 +58,8 @@ train_data = DataSplit(data_csv=train_csv, data_dir=config['data_root'], do_tran
 val_data = DataSplit(data_csv=val_csv, data_dir=config['data_root'], do_transform=True)
 
 # load
-data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=False, num_workers=16, pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=False, num_workers=16, pin_memory=False)
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=True, num_workers=16, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=True, num_workers=16, pin_memory=False)
 
 ### Setup logger and output folders
 log_dir = config['log_dir']

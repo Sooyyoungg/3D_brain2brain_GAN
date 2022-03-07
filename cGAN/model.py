@@ -103,14 +103,14 @@ class I2I_cGAN(nn.Module):
         # for i in range(save_num):
         #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
         #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), self.dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[0,0,32,:,:].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), self.dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
         feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
-        plotting.plot_anat(feat, title="Real_imgs", cut_coords=(32, 32, 32))
+        plotting.plot_anat(feat, title="cGAN_Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
         feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
@@ -173,6 +173,10 @@ class I2I_cGAN(nn.Module):
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)
 
+            self.vis_img(dwi, self.fake_dwi)
+            self.save_img(epoch)
+            # self.save_model(epoch)
+
             """ Validation """
             if epoch % 100 == 0 or epoch == 1:
                 with torch.no_grad():
@@ -180,12 +184,7 @@ class I2I_cGAN(nn.Module):
 
             # if epoch % 100 == 0:
             #     self.save_log(epoch)
-
-            if epoch % 10 == 0:
-                self.vis_img(dwi, self.fake_dwi)
-                self.save_img(epoch)
-                # self.save_model(epoch)
-
+            
         print('Finish training !!!')
         print('Total Training Time: ', time.time() - start_time)
         self.writer.close()

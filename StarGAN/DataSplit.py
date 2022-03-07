@@ -46,18 +46,19 @@ class DataSplit(Dataset):
             one_grad = grad_n[i].split(' ')
             gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
         grad_total = np.array(gg)
-        grad = grad_total[index % 103]
+        grad_trg = grad_total[index % 103]
+        if index % 103 == 102:
+            grad_ref = grad_total[0]
+        else:
+            grad_ref = grad_total[index % 103 + 1]
 
-        # random example
-        #struct = np.random.random_sample((64, 64, 64))
-        #dwi = np.random.random_sample((64, 64, 64))
         ### Transform
         if self.do_transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
-            #grad = self.transform(grad)
+            # grad = self.transform(grad)
 
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
 
-        return struct, dwi, grad
+        return struct, dwi, grad_trg, grad_ref

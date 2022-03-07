@@ -12,6 +12,8 @@ class Config:
     nchw = [32,64,64,64]
     G_lr = 2.5e-3
     D_lr = 1e-5
+    M_lr = 2.5e-3
+    S_lr = 2.5e-3
     epoch = 200
     batch_size = 32
 

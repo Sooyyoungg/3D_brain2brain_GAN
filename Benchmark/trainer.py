@@ -97,6 +97,7 @@ class dwi_Trainer(nn.Module):
         cond_i = data_dict['cond'].to(self.device).float()
         dwi_i = data_dict['dwi'].to(self.device).float()
         pred_i = self.gen_a.forward(in_i, cond_i)
+        print(dwi_i.shape)
         loss_dwi = self.recon_criterion(pred_i, dwi_i, False)
         self.gen_a.train()
         return_dict['dwi'] = dwi_i[0, 0].cpu().numpy()

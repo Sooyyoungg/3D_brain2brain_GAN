@@ -41,7 +41,7 @@ class DataSplit(Dataset):
             one_grad = grad_n[i].split(' ')
             gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
         grad_total = np.array(gg)
-        grad = grad_total[index % 103]  # (4)
+        grad = grad_total[dwi_num]  # (4)
 
         ### Transform
         if self.do_transform is not None:

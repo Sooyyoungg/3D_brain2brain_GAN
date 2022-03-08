@@ -121,32 +121,33 @@ while epoch < n_epochs or iterations < n_iterations:
         iterations = it + epoch*len(data_loader_train)
         # 학습 시간 출력
         start = time()
-        train_dict = trainer.update(data, n_dwi, iterations)     # : (64, 64, 64)
-        end = time()
-        update_t = end - start
-
-        # Loss 값 계산
-        ldwi = trainer.loss_dwi.item()
-        lg, ld = trainer.loss_g.item(), trainer.loss_d.item()
-        loss_print = ''
-        loss_print += ' Loss_dwi: %.4f'%ldwi if trainer.l1_w>0 else ''
-        loss_print += ' Loss_g: %.4f, Loss_d: %.4f'%(lg, ld) if trainer.gan_w > 0 else ''
-        print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] '%(update_t, epoch, it, len(data_loader_train),
-                                                             iterations, trainer.gen_opt.param_groups[0]['lr']) + loss_print)
-        # Update learning rate
-        trainer.update_learning_rate()
-
-        # Dump training stats in log file
-        if (iterations + 1) % config['log_iter'] == 0:
-            if ldwi > 0: train_writer.add_scalar('loss_dwi', trainer.loss_dwi, iterations)
-            if ld > 0: train_writer.add_scalar('loss_d', trainer.loss_d, iterations)
-            if lg > 0: train_writer.add_scalar('loss_g', trainer.loss_g, iterations)
+        # train_dict = trainer.update(data, n_dwi, iterations)     # : (64, 64, 64)
+        # end = time()
+        # update_t = end - start
+        # 
+        # # Loss 값 계산
+        # ldwi = trainer.loss_dwi.item()
+        # lg, ld = trainer.loss_g.item(), trainer.loss_d.item()
+        # loss_print = ''
+        # loss_print += ' Loss_dwi: %.4f'%ldwi if trainer.l1_w>0 else ''
+        # loss_print += ' Loss_g: %.4f, Loss_d: %.4f'%(lg, ld) if trainer.gan_w > 0 else ''
+        # print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] '%(update_t, epoch, it, len(data_loader_train),
+        #                                                      iterations, trainer.gen_opt.param_groups[0]['lr']) + loss_print)
+        # # Update learning rate
+        # trainer.update_learning_rate()
+        # 
+        # # Dump training stats in log file
+        # if (iterations + 1) % config['log_iter'] == 0:
+        #     if ldwi > 0: train_writer.add_scalar('loss_dwi', trainer.loss_dwi, iterations)
+        #     if ld > 0: train_writer.add_scalar('loss_d', trainer.loss_d, iterations)
+        #     if lg > 0: train_writer.add_scalar('loss_g', trainer.loss_g, iterations)
 
         # Write images
         if (iterations + 1) % config['image_display_iter'] == 0:
             with torch.no_grad():
                 data_test = next(iter(data_loader_val))
                 test_ret = trainer.sample(data_test)
+                
                 # print(imgs_titles)
                 # cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
                 # writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='val/',
@@ -162,14 +163,15 @@ while epoch < n_epochs or iterations < n_iterations:
 
                 # (64, 64, 64) (64, 64, 64) (64, 64, 64) (4,)
                 # print(train_dict['t1'].shape, train_dict['dwi'].shape, train_dict['pred'].shape, train_dict['grad'].shape)
+                # print(test_ret['t1'].shape, test_ret['dwi'].shape, test_ret['pred'].shape, test_ret['grad'].shape)
 
                 # Save generated image - Training data
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:,32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:,32], cmap='gray')
-
-                # Save generated image - Testing data
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :, 32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :, 32], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:,32], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:,32], cmap='gray')
+                #
+                # # Save generated image - Testing data
+                # plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :, 32], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :, 32], cmap='gray')
 
                 # Visualize generated image
                 # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))

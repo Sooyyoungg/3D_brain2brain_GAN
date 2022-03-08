@@ -57,7 +57,7 @@ input_dim: 1                  # number of image channels [1 - 3]: b0, t1, t2
 output_dim: 1
 num_workers: 4                # number of data loading threads
 pad_size: 160                # random crop image size
-data_root: /scratch/connectome/GANBERT/data/sample/sample_final       # dataroot of training files
+data_root: /scratch/connectome/GANBERT/data/sample_final       # dataroot of training files
 
 # dataset folder location
 dataset:  ABCD

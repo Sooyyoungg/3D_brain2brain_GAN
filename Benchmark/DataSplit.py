@@ -17,24 +17,19 @@ class DataSplit(Dataset):
         scale_transform = ScaleIntensity(minv=-1.0, maxv=1.0)
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
-        self.sub_num = 0
-
     def __len__(self):
         return len(self.data_csv) * 103
 
     def __getitem__(self, index):
-        if index == 0:
-            self.sub_num = 0
-        if index != 0 and index % 103 == 0:
-            self.sub_num += 1
-        sub = self.data_csv.iloc[self.sub_num][1]
+        sub_num = index // 103
+        dwi_num = index % 103
+        sub = self.data_csv.iloc[sub_num][1]
 
         ### Structure & diffusion-weighted image
-        struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
-
-        dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (64, 64, 64, 103)
-        dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))             # (103, 64, 64, 64)
-        dwi = dwi_total[index % 103, :, :, :]
+        struct = np.load(self.data_dir + '/' + sub + '.T1.npy')  # (64, 64, 64)
+        dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (64, 64, 64, 103)
+        dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))  # (103, 64, 64, 64)
+        dwi = dwi_total[dwi_num, :, :, :]  # (64, 64, 64)
 
         ### Gradient
         grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
@@ -46,11 +41,12 @@ class DataSplit(Dataset):
             one_grad = grad_n[i].split(' ')
             gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
         grad_total = np.array(gg)
-        grad = grad_total[index % 103]
+        grad = grad_total[dwi_num]
 
         # random example
         #struct = np.random.random_sample((64, 64, 64))
         #dwi = np.random.random_sample((64, 64, 64))
+        
         ### Transform
         if self.do_transform is not None:
             struct = self.transform(struct)

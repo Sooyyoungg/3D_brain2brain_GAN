@@ -99,24 +99,26 @@ class GAN_3D(nn.Module):
         for tag, value in scalar_info.items():
             self.writer.add_scalar(tag, value, epoch)
 
-    def save_img(self, epoch, save_num=5):
-        # for i in range(save_num):
-        #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-        #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'DCGAN_{:04d}_real.png'.format(epoch)),
+    def save_img(self, epoch, state='Train'):
+        if state == 'Train':
+            img_path = os.path.join(self.config.img_dir, 'Train')
+        else:
+            img_path = os.path.join(self.config.img_dir, 'Test')
+
+        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_real.png'.format(epoch)),
                    self.dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'DCGAN_{:04d}_fake.png'.format(epoch)),
+        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_fake.png'.format(epoch)),
                    self.fake_dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
 
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
-        feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())
+        feat = np.squeeze((0.5 * real_imgs[16] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
         plotting.plot_anat(feat, title="DCGAN_Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
-        feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
+        feat_f = np.squeeze((0.5 * fake_imgs[16] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
         plotting.plot_anat(feat_f, title="DCGAN_fake_imgs", cut_coords=(32, 32, 32))
         plotting.show()
@@ -174,8 +176,8 @@ class GAN_3D(nn.Module):
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)
 
-            self.vis_img(dwi, self.fake_dwi)
-            self.save_img(epoch)
+            self.vis_img(self.dwi, self.fake_dwi)
+            self.save_img(epoch, 'Train')
             # self.save_model(epoch)
 
             """ Validation """
@@ -208,7 +210,7 @@ class GAN_3D(nn.Module):
                 self.val_loss = val_avg_loss
                 # save model info & image
                 #self.save_log(epoch)
-                #self.save_img(save_num=3)
+                #self.save_img(epoch, 'Valid')
                 #self.save_model(epoch)
 
                 print("======= The highest validation score! =======")

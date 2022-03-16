@@ -16,44 +16,42 @@ class DataSplit(Dataset):
         scale_transform = ScaleIntensity(minv=-1.0, maxv=1.0)
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
+        ### Data Concatenate
+        self.total_st = []
+        self.total_dwi = []
+
+        for i in range(len(self.data_csv)):
+            sub = self.data_csv.iloc[i][1]
+
+            # Structure & diffusion-weighted image
+            struct = np.load(self.data_dir + '/' + sub + '.T1.npy')    # (64, 64, 64)
+            dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (64, 64, 64, 103)
+            dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))            # (103, 64, 64, 64)
+
+            for j in range(103):
+                dwi = dwi_total[j,:,:,:]                               # (64, 64, 64)
+                self.total_st.append(struct)
+                self.total_dwi.append(dwi)
+
+        self.total_st = np.array(self.total_st)                        # (13184, 64, 64, 64)
+        self.total_dwi = np.array(self.total_dwi)                      # (13184, 64, 64, 64)
+
+    ### Define functions
     def __len__(self):
-        return len(self.data_csv) * 103
+        return len(self.total_dwi)
 
     def __getitem__(self, index):
-        # 몇번째 subject인지 & 그 subject의 dwi 중 몇번째인지
-        sub_num = index // 103
-        dwi_num = index % 103
-        sub = self.data_csv.iloc[sub_num][1]
+        """print(index)
+        struct = self.total_st[index]
+        dwi = self.total_st[index]
 
-        ### Structure & diffusion-weighted image
-        struct = np.load(self.data_dir + '/' + sub + '.T1.npy')     # (64, 64, 64)
-        dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')   # (64, 64, 64, 103)
-        dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))             # (103, 64, 64, 64)
-        dwi = dwi_total[dwi_num, :, :, :]                           # (64, 64, 64)
-
-        ### Gradient : b-vector + b-value
-        # grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
-        # # change grad file into numpy
-        # grad_list = grad_file.split('\n')
-        # grad_n = np.array(grad_list)
-        # gg = []
-        # for i in range(len(grad_n)):
-        #     one_grad = grad_n[i].split(' ')
-        #     gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
-        # grad_total = np.array(gg)
-        # grad = grad_total[dwi_num]
-
-        # random example
-        # struct = np.random.random_sample((64, 64, 64))
-        # dwi = np.random.random_sample((64, 64, 64))
-
-        ### Transform
+        # Transform
         if self.do_transform is not None:
             struct = self.transform(struct)
             dwi = self.transform(dwi)
-            #grad = self.transform(grad)
 
+        # Reshape
         struct = struct.reshape((1, 64, 64, 64))
-        dwi = dwi.reshape((1, 64, 64, 64))
+        dwi = dwi.reshape((1, 64, 64, 64))"""
 
-        return struct, dwi
+        return self.total_st, self.total_dwi

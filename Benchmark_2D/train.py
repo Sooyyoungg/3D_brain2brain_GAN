@@ -21,7 +21,7 @@ from DataSplit import DataSplit
 import matplotlib
 matplotlib.use('Agg')
 
-print("<<<<<<<<<<<<<Benchmark model>>>>>>>>>>>>>")
+print("<<<<<<<<<<<<<Benchmark model 2D>>>>>>>>>>>>>")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
@@ -43,9 +43,12 @@ trainer.to(trainer.device)
 n_dwi = config['n_dwi']
 load_t1 = config['multimodal_t1']
 
-train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
-val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
+train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv',
+                        header=None)
+val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv',
+                      header=None)
+test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv',
+                       header=None)
 
 train_N = len(train_csv)
 val_N = len(val_csv)
@@ -58,8 +61,10 @@ train_data = DataSplit(data_csv=train_csv, data_dir=config['data_root'], do_tran
 val_data = DataSplit(data_csv=val_csv, data_dir=config['data_root'], do_transform=True)
 
 # load
-data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=True, num_workers=16, pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=True, num_workers=16, pin_memory=False)
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config['batch_size'], shuffle=True,
+                                                num_workers=16, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config['batch_size'], shuffle=True, num_workers=16,
+                                              pin_memory=False)
 
 ### Setup logger and output folders
 log_dir = config['log_dir']
@@ -70,7 +75,7 @@ print('* Logs will be saved under: ' + log_dir)
 train_writer = tensorboardX.SummaryWriter(log_dir)
 print('* Creating tensorboard summary writer ...')
 if not os.path.exists(os.path.join(log_dir, 'config.yaml')):
-    shutil.copy(opts.config, os.path.join(log_dir, 'config.yaml')) # copy config file to output folder
+    shutil.copy(opts.config, os.path.join(log_dir, 'config.yaml'))  # copy config file to output folder
 
 ## Load model
 if config['pretrained'] != '':
@@ -84,33 +89,33 @@ if opts.resume > 0:
         x = f.readlines()[0]
         load_epoch, iterations = int(x.split(',')[0]), int(x.split(',')[1])
         if load_epoch == -1:
-            load_epoch = int(iterations/ len(data_loader_train))
+            load_epoch = int(iterations / len(data_loader_train))
         if iterations == -1:
-            iterations = load_epoch*len(data_loader_train)
+            iterations = load_epoch * len(data_loader_train)
 
     # 학습된 부분까지의 model 불러오기
-    load_suffix = 'epoch%d.pt'%load_epoch
+    load_suffix = 'epoch%d.pt' % load_epoch
     if not os.path.exists(log_dir + '/gen_' + load_suffix):
         load_suffix = 'latest.pt'
     if not os.path.exists(log_dir + '/gen_latest.pt'):
         load_suffix = 'best.pt'
     print('* Resume training from {}'.format(load_suffix))
 
-    state_dict = torch.load(log_dir + '/gen_'+load_suffix)
+    state_dict = torch.load(log_dir + '/gen_' + load_suffix)
     trainer.gen_a.load_state_dict(state_dict['a'])
 
     opt_dict = torch.load(log_dir + '/opt_' + load_suffix)
     trainer.gen_opt.load_state_dict(opt_dict['gen'])
 
     if trainer.gan_w > 0:
-        state_dict = torch.load(log_dir + '/dis_'+load_suffix)
+        state_dict = torch.load(log_dir + '/dis_' + load_suffix)
         trainer.dis.load_state_dict(state_dict['dis'])
         trainer.dis_opt.load_state_dict(opt_dict['dis'])
 
 ## Start training
-print('* Training from epoch %d'%load_epoch)
+print('* Training from epoch %d' % load_epoch)
 print('---------------------------------------------------------------------')
-print('lambda L1: %.2f, gan: %.2f'%(trainer.l1_w, trainer.gan_w))
+print('lambda L1: %.2f, gan: %.2f' % (trainer.l1_w, trainer.gan_w))
 print('---------------------------------------------------------------------')
 best_train_loss, best_val_loss = 999, 999
 epoch = load_epoch
@@ -118,10 +123,10 @@ start = time()
 while epoch < n_epochs or iterations < n_iterations:
     epoch += 1
     for it, data in enumerate(data_loader_train):
-        iterations = it + epoch*len(data_loader_train)
+        iterations = it + epoch * len(data_loader_train)
         # 학습 시간 출력
         start = time()
-        train_dict = trainer.update(data, n_dwi, iterations)     # : (64, 64, 64)
+        train_dict = trainer.update(data, n_dwi, iterations)  # : (64, 64, 64)
         end = time()
         update_t = end - start
 
@@ -129,10 +134,11 @@ while epoch < n_epochs or iterations < n_iterations:
         ldwi = trainer.loss_dwi.item()
         lg, ld = trainer.loss_g.item(), trainer.loss_d.item()
         loss_print = ''
-        loss_print += ' Loss_dwi: %.4f'%ldwi if trainer.l1_w>0 else ''
-        loss_print += ' Loss_g: %.4f, Loss_d: %.4f'%(lg, ld) if trainer.gan_w > 0 else ''
-        print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] '%(update_t, epoch, it, len(data_loader_train),
-                                                             iterations, trainer.gen_opt.param_groups[0]['lr']) + loss_print)
+        loss_print += ' Loss_dwi: %.4f' % ldwi if trainer.l1_w > 0 else ''
+        loss_print += ' Loss_g: %.4f, Loss_d: %.4f' % (lg, ld) if trainer.gan_w > 0 else ''
+        print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] ' % (update_t, epoch, it, len(data_loader_train),
+                                                                  iterations,
+                                                                  trainer.gen_opt.param_groups[0]['lr']) + loss_print)
         # Update learning rate
         trainer.update_learning_rate()
 
@@ -147,7 +153,7 @@ while epoch < n_epochs or iterations < n_iterations:
             with torch.no_grad():
                 data_test = next(iter(data_loader_val))
                 test_ret = trainer.sample(data_test)
-                
+
                 # print(imgs_titles)
                 # cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
                 # writer = tensorboard_vis(summarywriter=train_writer, step=iterations, board_name='val/',
@@ -166,12 +172,20 @@ while epoch < n_epochs or iterations < n_iterations:
                 # print(test_ret['t1'].shape, test_ret['dwi'].shape, test_ret['pred'].shape, test_ret['grad'].shape)
 
                 # Save generated image - Training data
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:,32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:,32], cmap='gray')
+                plt.imsave(
+                    os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)),
+                    train_dict['dwi'][:, :], cmap='gray')
+                plt.imsave(
+                    os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)),
+                    train_dict['pred'][:, :], cmap='gray')
 
                 # Save generated image - Testing data
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :, 32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :, 32], cmap='gray')
+                plt.imsave(
+                    os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)),
+                    test_ret['dwi'][:, :], cmap='gray')
+                plt.imsave(
+                    os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)),
+                    test_ret['pred'][:, :], cmap='gray')
 
                 # Visualize generated image
                 # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))
@@ -184,14 +198,12 @@ while epoch < n_epochs or iterations < n_iterations:
                 # plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
                 # plotting.show()
 
-
     # Save network weights
     if (epoch + 1) % config['snapshot_save_iter'] == 0:
         trainer.save(log_dir, epoch, iterations)
     if (epoch + 1) % config['latest_save_iter'] == 0:
         trainer.save(log_dir, -1)
         with open(log_dir + '/latest_log.txt', 'w') as f:
-            f.writelines('%d, %d'%(epoch, iterations))
+            f.writelines('%d, %d' % (epoch, iterations))
 end = time()
-print('Training finished in {}, {} epochs, {} iterations'.format(convert(end-start), epoch, iterations))
-
+print('Training finished in {}, {} epochs, {} iterations'.format(convert(end - start), epoch, iterations))

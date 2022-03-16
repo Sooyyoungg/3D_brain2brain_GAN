@@ -2,6 +2,8 @@ import os
 import pandas as pd
 from torch.utils.data import DataLoader
 import torch
+from monai.transforms import ScaleIntensity, NormalizeIntensity
+from torchvision import transforms
 
 from Config import Config
 from DataSplit import DataSplit
@@ -37,9 +39,19 @@ val_data = DataSplit(data_csv=val_csv, data_dir=config.data_dir, do_transform=Tr
 # 13184 1854
 #print(train_data.__len__(), val_data.__len__())
 
+normal_transform = NormalizeIntensity(subtrahend=0.5, divisor=0.5, nonzero=False)
+scale_transform = ScaleIntensity(minv=-1.0, maxv=1.0)
+transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
+
+train_data = transform(train_data)
+print(train_data.shape)
+
+# Reshape
+#train_data = train_data.reshape((1, 64, 64, 64))
+
 # load
-data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=16, pin_memory=False)
-data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=True, num_workers=16, pin_memory=False)
+data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=False, num_workers=16, pin_memory=False)
+data_loader_val = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size, shuffle=False, num_workers=16, pin_memory=False)
 
 # 412 58
 print(len(data_loader_train), len(data_loader_val))

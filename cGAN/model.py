@@ -99,12 +99,16 @@ class I2I_cGAN(nn.Module):
         for tag, value in scalar_info.items():
             self.writer.add_scalar(tag, value, epoch)
 
-    def save_img(self, epoch, save_num=5):
-        # for i in range(save_num):
-        #     mdict = {'instance': self.fake_dwi[i,0].data.cpu().numpy()}
-        #     sio.savemat(os.path.join(self.config.img_dir, '{:06d}_{:02d}.mat'.format(epoch, i)), mdict)
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_real.png'.format(epoch)), self.dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(self.config.img_dir, 'cGAN_{:04d}_fake.png'.format(epoch)), self.fake_dwi[self.batch_size//2,0,:,:,32].detach().cpu().numpy(), cmap='gray')
+    def save_img(self, epoch, state='Train'):
+        if state == 'Train':
+            img_path = os.path.join(self.config.img_dir, 'Train')
+        else:
+            img_path = os.path.join(self.config.img_dir, 'Test')
+
+        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_real.png'.format(epoch)),
+                   self.dwi[self.batch_size // 2, 0, :, :, 32].detach().cpu().numpy(), cmap='gray')
+        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_fake.png'.format(epoch)),
+                   self.fake_dwi[self.batch_size // 2, 0, :, :, 32].detach().cpu().numpy(), cmap='gray')
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
@@ -152,9 +156,9 @@ class I2I_cGAN(nn.Module):
 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
-                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
+                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
+                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
+                               'real_fake': self.img_criterion(self.fake_dwi.detach(), self.dwi)}
                 self.loss_G = sum(self.G_loss.values())
                 self.opt_G.zero_grad()
                 self.loss_G.backward()
@@ -174,7 +178,7 @@ class I2I_cGAN(nn.Module):
             print('Time for an epoch: ', time.time() - epoch_time)
 
             self.vis_img(dwi, self.fake_dwi)
-            self.save_img(epoch)
+            self.save_img(epoch, 'Train')
             # self.save_model(epoch)
 
             """ Validation """

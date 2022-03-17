@@ -3,6 +3,7 @@ import time
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+import numpy
 import numpy as np
 import nibabel as nib
 from nilearn import plotting
@@ -113,15 +114,15 @@ class GAN_3D(nn.Module):
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
-        feat = np.squeeze((0.5 * real_imgs[16] + 0.5).detach().cpu().numpy())
+        feat = np.squeeze((0.5 * real_imgs[15] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
         plotting.plot_anat(feat, title="DCGAN_Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
-        feat_f = np.squeeze((0.5 * fake_imgs[16] + 0.5).detach().cpu().numpy())
+        """feat_f = np.squeeze((0.5 * fake_imgs[15] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
         plotting.plot_anat(feat_f, title="DCGAN_fake_imgs", cut_coords=(32, 32, 32))
-        plotting.show()
+        plotting.show()"""
 
     def save_model(self, epoch):
         torch.save({key: val.cpu() for key, val in self.G.state_dict().items()}, os.path.join(self.config.model_dir, 'G_iter_{:04d}.pth'.format(epoch)))
@@ -144,7 +145,7 @@ class GAN_3D(nn.Module):
             self.G_lr_scheduler.step()
             self.D_lr_scheduler.step()
 
-            for i, (struct, dwi) in enumerate(self.train_data):
+            for i, (sub, struct, dwi) in enumerate(self.train_data):
                 if epoch == 1 and i == 0:
                     print("Training structure mri shape: ", struct.shape)
                     print("Training diffusion-weighted image shape: ", dwi.shape)
@@ -152,7 +153,7 @@ class GAN_3D(nn.Module):
                 struct = struct.to(self.device).float()
                 self.dwi = dwi.to(self.device).float()
                 self.fake_dwi = self.G(struct)
-
+                
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
                 self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
@@ -172,6 +173,7 @@ class GAN_3D(nn.Module):
                 self.opt_D.zero_grad()
                 self.loss_D.backward()
                 self.opt_D.step()
+                self.vis_img(self.dwi, self.fake_dwi)
 
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)

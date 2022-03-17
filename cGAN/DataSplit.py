@@ -50,7 +50,8 @@ class DataSplit(Dataset):
         self.total_st = np.array(self.total_st)  # (13184, 64, 64, 64)
         self.total_dwi = np.array(self.total_dwi)  # (13184, 64, 64, 64)
         self.total_grad = np.array(self.total_grad) # (13184, 4)
-
+        
+    ### Define functions
     def __len__(self):
         return len(self.total_dwi)
 

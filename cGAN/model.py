@@ -105,19 +105,19 @@ class I2I_cGAN(nn.Module):
         else:
             img_path = os.path.join(self.config.img_dir, 'Test')
 
-        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_real.png'.format(epoch)),
+        plt.imsave(os.path.join(img_path, 'cGAN_{:04d}_real.png'.format(epoch)),
                    self.dwi[self.batch_size // 2, 0, :, :, 32].detach().cpu().numpy(), cmap='gray')
-        plt.imsave(os.path.join(img_path, 'DCGAN_{:04d}_fake.png'.format(epoch)),
+        plt.imsave(os.path.join(img_path, 'cGAN_{:04d}_fake.png'.format(epoch)),
                    self.fake_dwi[self.batch_size // 2, 0, :, :, 32].detach().cpu().numpy(), cmap='gray')
 
     def vis_img(self, real_imgs, fake_imgs):
         # Visualize generated image
-        feat = np.squeeze((0.5 * real_imgs[0] + 0.5).detach().cpu().numpy())
+        feat = np.squeeze((0.5 * real_imgs[self.batch_size // 2] + 0.5).detach().cpu().numpy())
         feat = nib.Nifti1Image(feat, affine=np.eye(4))
         plotting.plot_anat(feat, title="cGAN_Real_imgs", cut_coords=(32, 32, 32))
         plotting.show()
 
-        feat_f = np.squeeze((0.5 * fake_imgs[0] + 0.5).detach().cpu().numpy())
+        feat_f = np.squeeze((0.5 * fake_imgs[self.batch_size // 2] + 0.5).detach().cpu().numpy())
         feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
         plotting.plot_anat(feat_f, title="cGAN_imgs", cut_coords=(32, 32, 32))
         plotting.show()
@@ -177,7 +177,7 @@ class I2I_cGAN(nn.Module):
             print('epoch: {:04d}, loss_D: {:.6f}, loss_G: {:.6f}'.format(epoch, self.loss_D.data.cpu().numpy(), self.loss_G.data.cpu().numpy()))
             print('Time for an epoch: ', time.time() - epoch_time)
 
-            self.vis_img(dwi, self.fake_dwi)
+            self.vis_img(self.dwi, self.fake_dwi)
             self.save_img(epoch, 'Train')
             # self.save_model(epoch)
 

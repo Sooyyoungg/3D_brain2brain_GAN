@@ -15,7 +15,6 @@ class DataSplit(Dataset):
         self.transform = transforms.Compose([normal_transform, scale_transform, transforms.ToTensor()])
 
         ### Data Concatenate
-        self.total_sub = []
         self.total_st = []
         self.total_dwi = []
 
@@ -31,9 +30,7 @@ class DataSplit(Dataset):
                 dwi = dwi_total[j,:,:,:]                               # (64, 64, 64)
                 self.total_st.append(struct)
                 self.total_dwi.append(dwi)
-                self.total_sub.append(sub)
 
-        self.total_sub = np.array(self.total_sub) # (13184,)
         self.total_st = np.array(self.total_st)                        # (13184, 64, 64, 64)
         self.total_dwi = np.array(self.total_dwi)                      # (13184, 64, 64, 64)
 
@@ -42,8 +39,6 @@ class DataSplit(Dataset):
         return len(self.total_dwi)
 
     def __getitem__(self, index):
-        # print(index)
-        sub = self.total_sub[index]
         struct = self.total_st[index]
         dwi = self.total_dwi[index]
 
@@ -56,4 +51,4 @@ class DataSplit(Dataset):
         struct = struct.reshape((1, 64, 64, 64))
         dwi = dwi.reshape((1, 64, 64, 64))
 
-        return sub, struct, dwi
+        return struct, dwi

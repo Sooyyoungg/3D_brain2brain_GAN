@@ -64,7 +64,8 @@ class dwi_Trainer(nn.Module):
             self.dis = Unet_Discriminator(hyperparameters['dis']['in_dim'], ndf=hyperparameters['dis']['dim'],
                                           n_layers=hyperparameters['dis']['n_layer'], n_latent=2, embed=True, device=self.device)
 
-            self.dis_opt = torch.optim.Adam([p for p in list(self.dis.parameters()) if p.requires_grad], lr=hyperparameters['dis']['lr_d'],
+            self.dis_opt = torch.optim.Adam([p for p in list(self.dis.parameters()) if p.requires_grad],
+                                            lr=hyperparameters['dis']['lr_d'],
                                             betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
             self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
             self.criterionGAN = GANLoss(hyperparameters['dis']['gan_type'])

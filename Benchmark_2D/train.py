@@ -166,12 +166,12 @@ while epoch < n_epochs or iterations < n_iterations:
                 # print(test_ret['t1'].shape, test_ret['dwi'].shape, test_ret['pred'].shape, test_ret['grad'].shape)
 
                 # Save generated image - Training data
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:,32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:,32], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:], cmap='gray')
 
                 # Save generated image - Testing data
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :, 32], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :, 32], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :], cmap='gray')
 
                 # Visualize generated image
                 # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))

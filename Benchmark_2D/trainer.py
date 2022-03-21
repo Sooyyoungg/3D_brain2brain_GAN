@@ -113,7 +113,7 @@ class dwi_Trainer(nn.Module):
         return_dict = {}
         if self.mt1:
             nc += 1
-            t1_i = data_dict['t1'].to(self.device).float()
+            t1_i = data_dict['t1'].to(self.device).float()     # [batch_size, 1, 64, 64]
             return_dict['t1'] = t1_i[0, 0].detach().cpu().numpy()
             if in_i is None:
                 in_i = t1_i

@@ -40,7 +40,7 @@ class SimpleAdaInGen(nn.Module):
     def assign_adain_params(self, adain_params, model):
         # assign the adain_params to the AdaIN layers in model
         for m in model.modules():
-            if m.__class__.__name__ == "AdaptiveInstanceNorm2":
+            if m.__class__.__name__ == "AdaptiveInstanceNorm2d":
                 mean = adain_params[:, :m.num_features]
                 std = adain_params[:, m.num_features:2*m.num_features]
                 m.bias = mean.contiguous().view(-1)
@@ -206,32 +206,33 @@ class Unet_Discriminator(nn.Module):
     def forward(self, x, y=None):
         conditional = False
         if y is not None:
-            conditional = True
-        h = x                             # h: torch.Size([4, 2, 64, 64, 64])
+            conditional = True            # y: torch.Size([2, 4])
+        h = x                             # h: torch.Size([2, 2, 64, 64])
         res_features = []
-        h = self.head(h)                  # h: torch.Size([4, 64, 64, 64, 64])
+        h = self.head(h)                  # h: torch.Size([4, 64, 64, 64])
         for n in range(self.n_downsample):
             h = self.enc_layers[n](h)
             res_features.append(h)
-        h = self.latent(h)                # h: torch.Size([4, 256, 16, 16, 16])
+        h = self.latent(h)                # h: torch.Size([2, 256, 16, 16])
         h_ = h
-        h_ = torch.sum(h_, [2,3,4])         # h_: torch.Size([4, 256])
-        bottleneck_out = self.linear(h_)
+        h_ = torch.sum(h_, [2,3])         # h_: torch.Size([2, 256])
+        bottleneck_out = self.linear(h_)  # : torch.Size([2, 1])
 
         for n in range(self.n_downsample):
             eid = -1 - n
             h = torch.cat((res_features[eid], h), dim=1)
             h = F.interpolate(h, scale_factor=2)
             h = self.dec_layers[n](h)
+        # h: torch.Size([2, 64, 64, 64])
 
-        out = self.last(h)
+        out = self.last(h)  # out: torch.Size([2, 1, 64, 64])
         if conditional:
-            emb_mid = self.embedding_middle(y)
-            proj_mid = torch.sum(emb_mid * bottleneck_out, 1, keepdim=True)    # torch.Size([4, 1])
+            emb_mid = self.embedding_middle(y)  # emb_mid: torch.Size([2, 256])
+            proj_mid = torch.sum(emb_mid * bottleneck_out, 1, keepdim=True)    # torch.Size([2, 1])
             bottleneck_out = bottleneck_out + proj_mid
 
-            emb_out = self.embedding_out(y)     # torch.Size([4, 1])
-            emb_out = emb_out.view(emb_out.size(0), emb_out.size(1), 1, 1, 1).expand_as(out)
+            emb_out = self.embedding_out(y)     # torch.Size([2, 1])
+            emb_out = emb_out.view(emb_out.size(0), emb_out.size(1), 1, 1).expand_as(out)
             proj = torch.sum(emb_out * out, 1, keepdim=True)
             out = out + proj
         return out, bottleneck_out

@@ -40,14 +40,14 @@ class DataSplit(Dataset):
             grad_total = np.array(gg)  # (103, 4)
 
             for j in range(103):
-                dwi = dwi_total[j, :, :, :]  # (64, 64, 64)
+                dwi = dwi_total[j, :, :, 32]  # (64, 64, 64)
                 grad = grad_total[j]  # (4)
-                self.total_st.append(struct)
+                self.total_st.append(struct[:,:,32])
                 self.total_dwi.append(dwi)
                 self.total_grad.append(grad)
 
-        self.total_st = np.array(self.total_st)  # (13184, 64, 64, 64)
-        self.total_dwi = np.array(self.total_dwi)  # (13184, 64, 64, 64)
+        self.total_st = np.array(self.total_st)  # (13184, 64, 64)
+        self.total_dwi = np.array(self.total_dwi)  # (13184, 64, 64)
         self.total_grad = np.array(self.total_grad)  # (13184, 4)
 
     def __len__(self):
@@ -65,8 +65,8 @@ class DataSplit(Dataset):
             # grad = self.transform(grad)
 
         # Reshape
-        struct = struct.reshape((1, 64, 64, 64))
-        dwi = dwi.reshape((1, 64, 64, 64))
+        struct = struct.reshape((1, 64, 64))
+        dwi = dwi.reshape((1, 64, 64))
         # grad = grad.reshape((1, 4))
 
         return {"t1": struct, "dwi": dwi, "cond": grad}

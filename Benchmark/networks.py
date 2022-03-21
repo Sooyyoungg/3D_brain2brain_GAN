@@ -224,7 +224,7 @@ class Unet_Discriminator(nn.Module):
             h = F.interpolate(h, scale_factor=2)
             h = self.dec_layers[n](h)
 
-        out = self.last(h)
+        out = self.last(h)   # out: torch.Size([2, 1, 64, 64, 64])
         if conditional:
             emb_mid = self.embedding_middle(y)
             proj_mid = torch.sum(emb_mid * bottleneck_out, 1, keepdim=True)    # torch.Size([4, 1])

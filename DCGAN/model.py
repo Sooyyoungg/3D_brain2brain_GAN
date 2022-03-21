@@ -156,9 +156,9 @@ class GAN_3D(nn.Module):
                 
                 """ Generator """
                 D_judge = self.D(self.fake_dwi)   # shape: [batch_size, 1]
-                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
-                #self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
-                #               'real_fake': self.img_criterion(self.fake_dwi, dwi)}
+                # self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge))}
+                self.G_loss = {'adv_fake': self.adv_criterion(D_judge, torch.ones_like(D_judge)),
+                               'real_fake': self.img_criterion(self.fake_dwi.detach(), self.dwi)}
                 self.loss_G = sum(self.G_loss.values())
                 self.opt_G.zero_grad()
                 self.loss_G.backward()

@@ -41,7 +41,7 @@ class DataSplit(Dataset):
                 gg.append([float(one_grad[0]), float(one_grad[1]), float(one_grad[2]), float(one_grad[3])])
             grad_total = np.array(gg)  # (96, 4)
 
-            for j in range(103):
+            for j in range(dwi_total.shape[0]):
                 input = np.concatenate((struct.reshape((1, 64, 64, 64)), b0), axis=0)  # (8, 64, 64, 64)
                 dwi = dwi_total[j, :, :, 32]  # (64, 64, 64)
                 grad = grad_total[j]  # (4)

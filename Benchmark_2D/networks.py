@@ -206,10 +206,10 @@ class Unet_Discriminator(nn.Module):
     def forward(self, x, y=None):
         conditional = False
         if y is not None:
-            conditional = True            # y: torch.Size([2, 4])
-        h = x                             # h: torch.Size([2, 2, 64, 64])
+            conditional = True            # y: torch.Size([32, 4])
+        h = x                             # h: torch.Size([32, 8+1, 64, 64])
         res_features = []
-        h = self.head(h)                  # h: torch.Size([4, 64, 64, 64])
+        h = self.head(h)                  # h: torch.Size([32, 64, 64, 64])
         for n in range(self.n_downsample):
             h = self.enc_layers[n](h)
             res_features.append(h)

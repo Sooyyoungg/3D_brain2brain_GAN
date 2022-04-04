@@ -63,7 +63,8 @@ class DataSplit(Dataset):
 
         # Transform
         if self.do_transform is not None:
-            input = self.transform(input)
+            for i in range(input.shape[0]):
+                input[i] = self.transform(input[i])
             dwi = self.transform(dwi)
             # grad = self.transform(grad)
 

@@ -15,9 +15,10 @@ class dwi_Trainer(nn.Module):
 
         lr = hyperparameters['lr']
         # Initiate the networks
+        self.mb0 = hyperparameters['multimodal_b0'] > 0
         self.mt1 = hyperparameters['multimodal_t1'] > 0
         # input channel로 b0, t1, t2를 사용
-        assert hyperparameters['multimodal_t1'] == hyperparameters['input_dim']
+        assert hyperparameters['multimodal_b0'] + hyperparameters['multimodal_t1'] == hyperparameters['input_dim']
         print(hyperparameters['gen']['g_type'])
 
         ### Generator
@@ -129,9 +130,9 @@ class dwi_Trainer(nn.Module):
         self.loss_d = torch.zeros([]).to(self.device)
         i = 0
         return_dict, in_i = self.prepare_input(data_dict, i)
-        cond_i = data_dict['cond'].to(self.device).float()
+        cond_i = data_dict['cond'].to(self.device).float()  # [32, 4]
         dwi_i = data_dict['dwi'].to(self.device).float()
-        pred_i = self.gen_a.forward(in_i, cond_i)
+        pred_i = self.gen_a.forward(in_i, cond_i)   # [32, 1, 64, 64]
         self.loss_dwi += self.l1_w * self.recon_criterion(pred_i, dwi_i, False)
         total_loss = self.loss_dwi
 

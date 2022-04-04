@@ -75,4 +75,4 @@ class DataSplit(Dataset):
         dwi = dwi.reshape((1, 64, 64))
         # grad = grad.reshape((1, 4))
 
-        return {"t1": struct, "dwi": dwi, "cond": grad}
+        return {"t1": input, "dwi": dwi, "cond": grad}

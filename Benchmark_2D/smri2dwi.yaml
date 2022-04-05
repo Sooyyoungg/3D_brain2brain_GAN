@@ -9,10 +9,10 @@ latest_save_iter: 1          # How often do you want to save trained models
 log_iter: 201                # How often do you want to log the training stats
 log_dir: './logs'          # Log prefix to save checkpoints
 pretrained:  ''              # Start from specified checkpoint if not ''
-gpu_ids: '4'
+gpu_ids: '6'
 
 # optimization options
-n_epoch: 100                   # maximum number of training epochs
+n_epoch: 300                   # maximum number of training epochs
 n_iterations: 1
 batch_size: 32                 # batch size
 weight_decay: 0.0001          # weight decay

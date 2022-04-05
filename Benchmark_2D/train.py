@@ -131,7 +131,7 @@ while epoch < n_epochs or iterations < n_iterations:
         loss_print = ''
         loss_print += ' Loss_dwi: %.4f'%ldwi if trainer.l1_w>0 else ''
         loss_print += ' Loss_g: %.4f, Loss_d: %.4f'%(lg, ld) if trainer.gan_w > 0 else ''
-        print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] '%(update_t, epoch, it, len(data_loader_train),
+        print('[Time %.3fs/it %d: %d/%d, Iter: %d (lr:%.5f)] '%(update_t, epoch, it, len(data_loader_train)-1,
                                                              iterations, trainer.gen_opt.param_groups[0]['lr']) + loss_print)
         # Update learning rate
         trainer.update_learning_rate()

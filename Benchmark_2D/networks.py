@@ -243,24 +243,26 @@ class Unet_Discriminator(nn.Module):
         self.pred_fake_pix, pred_fake_img = self.forward(fake_AB, fake_bvec)
         self.pred_real_pix, pred_real_img = self.forward(real_AB, real_bvec)
 
-    def calc_gradient_penalty(self, x, x_gen, w=10, cuda_ind=0):
+    def calc_gradient_penalty(self, real_data, generated_data, w=10, cuda_ind=0):
         """WGAN-GP gradient penalty"""
-
-        if not x.size() == x_gen.size():
+        if not real_data.size() == generated_data.size():
             return 0
-        alpha_size = tuple((len(x), *(1,) * (x.dim() - 1)))
-        alpha_t = torch.cuda.FloatTensor if x.is_cuda else torch.Tensor
+
+        alpha_size = tuple((len(real_data), *(1,) * (real_data.dim() - 1)))
+        alpha_t = torch.cuda.FloatTensor if real_data.is_cuda else torch.Tensor
         alpha = alpha_t(*alpha_size).uniform_().cuda(cuda_ind)
-        # x_hat = x.data*alpha + x_gen.data*(1-alpha)
-        x_hat = x * alpha + x_gen * (1 - alpha)
+        x_hat = real_data * alpha + generated_data * (1 - alpha)
         x_hat = Variable(x_hat, requires_grad=True)
 
-        grad_xhat = torch.autograd.grad(self.forward(x_hat).sum(), x_hat, create_graph=True, only_inputs=True)[0]
+        interpolated = self.forward(x_hat)
+        grad_xhat = torch.autograd.grad(interpolated.sum(), x_hat, create_graph=True, only_inputs=True)[0]
+        grad_xhat = grad_xhat.view(len(grad_xhat), -1)
+        grad_norm = torch.sqrt(torch.sum(grad_xhat * grad_xhat + 1e-15, dim=-1))
+        penalty = w * ((grad_norm - 1)**2).mean()
 
-        penalty = w * bi_penalty(eps_norm(grad_xhat)).mean()
         return penalty
 
-    def get_D_loss(self, input_real, real_img, real_bvec, input_fake, fake_img, fake_bvec, criterionGAN):
+    def get_D_loss(self, input_real_j, dwi_real_j, bvec_real_j, input_fake_i, dwi_real_i, dwi_fake_i, bvec_fake_i, criterionGAN):
         """Calculate DCGAN loss for the discriminator"""
         #input: b0
         #real_img: target dwi,
@@ -268,18 +270,22 @@ class Unet_Discriminator(nn.Module):
         #fake_img: generated image
         #fake_bvec: bvec for generated img
         #in case we want to use unpaired sampling, or the real_bvec & fake_bvec would be the same
+
         # Fake; stop backprop to the generator by detaching fake_B
-        fake_AB = torch.cat((input_fake, fake_img.detach()), dim=1)
-        pred_fake_pix, pred_fake_img = self.forward(fake_AB, fake_bvec)
+        fake_AB = torch.cat((input_fake_i, dwi_fake_i.detach()), dim=1)
+        pred_fake_pix, pred_fake_img = self.forward(fake_AB, bvec_fake_i)
         loss_D_fake_pix, loss_D_fake_img = criterionGAN(pred_fake_pix, False), criterionGAN(pred_fake_img, False)
-        # Real
-        real_AB = torch.cat((input_real, real_img), dim=1)
-        #print(real_AB.size())
-        pred_real_pix, pred_real_img = self.forward(real_AB, real_bvec)
+
+        # Real : using another(j-th) image in same batch not i-th image
+        real_AB = torch.cat((input_real_j, dwi_real_j), dim=1)
+        pred_real_pix, pred_real_img = self.forward(real_AB, bvec_real_j)
         loss_D_real_pix, loss_D_real_img = criterionGAN(pred_real_pix, True), criterionGAN(pred_real_img, True)
+
         # combine loss and calculate gradients
-        loss_D_global = (loss_D_fake_img + loss_D_real_img) + calc_gradient_penalty(model, input_real, fake_img, w=10, cuda_ind=0)
-        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + calc_gradient_penalty(model, input_real, fake_img, w=10, cuda_ind=0)
+        # loss_D_global = loss_D_fake_img + loss_D_real_img
+        loss_D_global = (loss_D_fake_img + loss_D_real_img) + calc_gradient_penalty(dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
+        # loss_D_local = loss_D_fake_pix + loss_D_real_pix
+        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + calc_gradient_penalty(dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
 
         return loss_D_global, loss_D_local
 

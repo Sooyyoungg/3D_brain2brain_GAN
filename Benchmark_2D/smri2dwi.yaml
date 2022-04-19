@@ -7,9 +7,9 @@ display_size: 1              # How many images do you want to display each time
 snapshot_save_iter: 5        # How often do you want to save trained models
 latest_save_iter: 1          # How often do you want to save trained models
 log_iter: 201                # How often do you want to log the training stats
-log_dir: './logs'          # Log prefix to save checkpoints
+log_dir: './logs/wgan'          # Log prefix to save checkpoints
 pretrained:  ''              # Start from specified checkpoint if not ''
-gpu_ids: '0'
+gpu_ids: '6'
 
 # optimization options
 n_epoch: 300                   # maximum number of training epochs
@@ -20,8 +20,8 @@ beta1: 0.5                    # Adam parameter
 beta2: 0.999                  # Adam parameter
 init: gaussian                # initialization [gaussian/kaiming/xavier/orthogonal]
 lr: 0.00005                   # initial learning rate
-lr_policy: warmup               # learning rate scheduler
-step_size: 10             # how often to decay learning rate
+lr_policy: step               # learning rate scheduler
+step_size: 100000             # how often to decay learning rate
 gamma: 0.5                    # how much to decay learning rate
 
 l1_w : 100.                   # weight of L1 loss
@@ -63,4 +63,4 @@ data_root: /storage/connectome/GANBERT/data/sample/sample_b0_input_ver       # d
 # dataset folder location
 dataset:  ABCD
 n_dwi: 2
-img_dir: /home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input_warmup
+img_dir: /home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input

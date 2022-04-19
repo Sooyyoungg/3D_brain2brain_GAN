@@ -163,7 +163,7 @@ class dwi_Trainer(nn.Module):
                 _, in_j = self.prepare_input(data_dict, j)
                 dwi_j = data_dict['dwi'].to(self.device).float()
                 cond_j = data_dict['cond'].to(self.device).float()
-                self.loss_D_global, self.loss_D_local = self.dis.get_D_loss(in_j, dwi_j, cond_j, in_i, pred_i, cond_i, self.criterionGAN)
+                self.loss_D_global, self.loss_D_local = self.dis.get_D_loss(in_j, dwi_j, cond_j, in_i, dwi_i, pred_i, cond_i, self.criterionGAN)
                 print('Global D: {}, Local D: {}'.format(self.loss_D_global.item(), self.loss_D_local.item()))
                 self.loss_d = 0.5 * (self.loss_D_global + self.loss_D_local) * self.gan_w
 

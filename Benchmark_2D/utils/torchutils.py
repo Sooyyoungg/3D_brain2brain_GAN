@@ -4,11 +4,16 @@ import math
 
 
 def get_scheduler(optimizer, hyperparameters, iterations=-1):
+    scheduler_steplr = lr_scheduler.StepLR(optimizer, step_size=hyperparameters['step_size'],
+                                        gamma=hyperparameters['gamma'], last_epoch=iterations)
+
     if 'lr_policy' not in hyperparameters or hyperparameters['lr_policy'] == 'constant':
         scheduler = None # constant scheduler
     elif hyperparameters['lr_policy'] == 'step':
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=hyperparameters['step_size'],
-                                        gamma=hyperparameters['gamma'], last_epoch=iterations)
+        scheduler = scheduler_steplr
+    elif hyperparameters['lr_policy'] == 'warmup':
+        scheduler = create_lr_scheduler_with_warmup(scheduler_steplr, warmup_start_value=0.0,
+                                                    warmup_end_value=0.1, warmup_duration=5)
     else:
         return NotImplementedError('learning rate policy [%s] is not implemented', hyperparameters['lr_policy'])
     return scheduler

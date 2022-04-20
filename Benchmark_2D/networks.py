@@ -243,7 +243,7 @@ class Unet_Discriminator(nn.Module):
         self.pred_fake_pix, pred_fake_img = self.forward(fake_AB, fake_bvec)
         self.pred_real_pix, pred_real_img = self.forward(real_AB, real_bvec)
 
-    def calc_gradient_penalty(self, real_data, generated_data, w=10, cuda_ind=0):
+    def calc_gradient_penalty(self, input_img, real_data, generated_data, w=10, cuda_ind=0):
         """WGAN-GP gradient penalty"""
         if not real_data.size() == generated_data.size():
             return 0
@@ -252,6 +252,7 @@ class Unet_Discriminator(nn.Module):
         alpha_t = torch.cuda.FloatTensor if real_data.is_cuda else torch.Tensor
         alpha = alpha_t(*alpha_size).uniform_().cuda(cuda_ind)
         x_hat = real_data * alpha + generated_data * (1 - alpha)
+        x_hat = torch.concat((x_hat, input_img), dim=1)
         x_hat = Variable(x_hat, requires_grad=True)
 
         interpolated = self.forward(x_hat)
@@ -283,9 +284,9 @@ class Unet_Discriminator(nn.Module):
 
         # combine loss and calculate gradients
         # loss_D_global = loss_D_fake_img + loss_D_real_img
-        loss_D_global = (loss_D_fake_img + loss_D_real_img) + calc_gradient_penalty(dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
+        loss_D_global = (loss_D_fake_img + loss_D_real_img) + self.calc_gradient_penalty(input_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
         # loss_D_local = loss_D_fake_pix + loss_D_real_pix
-        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + calc_gradient_penalty(dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
+        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + self.calc_gradient_penalty(input_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
 
         return loss_D_global, loss_D_local
 

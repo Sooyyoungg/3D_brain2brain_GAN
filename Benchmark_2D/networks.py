@@ -243,7 +243,7 @@ class Unet_Discriminator(nn.Module):
         self.pred_fake_pix, pred_fake_img = self.forward(fake_AB, fake_bvec)
         self.pred_real_pix, pred_real_img = self.forward(real_AB, real_bvec)
 
-    def calc_gradient_penalty(self, input_img, real_data, generated_data, w=10, cuda_ind=0):
+    def calc_gradient_penalty(self, input_img, bvec_fake_i, real_data, generated_data, w=10, cuda_ind=0):
         """WGAN-GP gradient penalty"""
         if not real_data.size() == generated_data.size():
             return 0
@@ -255,8 +255,8 @@ class Unet_Discriminator(nn.Module):
         x_hat = torch.concat((x_hat, input_img), dim=1)
         x_hat = Variable(x_hat, requires_grad=True)
 
-        interpolated = self.forward(x_hat)
-        grad_xhat = torch.autograd.grad(interpolated.sum(), x_hat, create_graph=True, only_inputs=True)[0]
+        interpolated_pix, interpolated_img = self.forward(x_hat, bvec_fake_i)
+        grad_xhat = torch.autograd.grad(interpolated_pix.sum(), x_hat, create_graph=True, only_inputs=True)[0]
         grad_xhat = grad_xhat.view(len(grad_xhat), -1)
         grad_norm = torch.sqrt(torch.sum(grad_xhat * grad_xhat + 1e-15, dim=-1))
         penalty = w * ((grad_norm - 1)**2).mean()
@@ -284,9 +284,9 @@ class Unet_Discriminator(nn.Module):
 
         # combine loss and calculate gradients
         # loss_D_global = loss_D_fake_img + loss_D_real_img
-        loss_D_global = (loss_D_fake_img + loss_D_real_img) + self.calc_gradient_penalty(input_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
+        loss_D_global = (loss_D_fake_img + loss_D_real_img) + self.calc_gradient_penalty(input_fake_i, bvec_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
         # loss_D_local = loss_D_fake_pix + loss_D_real_pix
-        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + self.calc_gradient_penalty(input_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
+        loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + self.calc_gradient_penalty(input_fake_i, bvec_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
 
         return loss_D_global, loss_D_local
 

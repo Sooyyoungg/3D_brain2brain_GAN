@@ -5,7 +5,7 @@
       <paths name="conmaster@localhost:6000 key">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN" local="$PROJECT_DIR$" web="/" />
             <mapping local="" />
           </mappings>
         </serverdata>

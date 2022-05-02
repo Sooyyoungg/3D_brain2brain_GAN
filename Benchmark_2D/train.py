@@ -145,8 +145,8 @@ while epoch < n_epochs or iterations < n_iterations:
         # Write images
         if (iterations + 1) % config['image_display_iter'] == 0:
             with torch.no_grad():
-                data_test = next(iter(data_loader_val))
-                test_ret = trainer.sample(data_test)
+                data_val = next(iter(data_loader_val))
+                val_ret = trainer.sample(data_val)
                 
                 # print(imgs_titles)
                 # cmaps = ['jet' if 'seg' in i else 'gist_gray' for i in imgs_titles]
@@ -169,9 +169,9 @@ while epoch < n_epochs or iterations < n_iterations:
                 plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:], cmap='gray')
                 plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:], cmap='gray')
 
-                # Save generated image - Testing data
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), test_ret['dwi'][:, :], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Test', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), test_ret['pred'][:, :], cmap='gray')
+                # Save generated image - Validation data
+                plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), val_ret['dwi'][:, :], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), val_ret['pred'][:, :], cmap='gray')
 
                 # Visualize generated image
                 # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))
@@ -183,7 +183,6 @@ while epoch < n_epochs or iterations < n_iterations:
                 # feat_f = nib.Nifti1Image(feat_f, affine=np.eye(4))
                 # plotting.plot_anat(feat_f, title="Generated_imgs", cut_coords=(32, 32, 32))
                 # plotting.show()
-
 
     # Save network weights
     if (epoch + 1) % config['snapshot_save_iter'] == 0:

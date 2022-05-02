@@ -10,7 +10,13 @@
             </list>
           </settings>
         </remote-mappings>
-        <remote-mappings server-id="python@sftp://conmaster@localhost:6000/home/connectome/conmaster/.conda/envs/swimming/bin/python" />
+        <remote-mappings server-id="python@sftp://conmaster@localhost:6000/home/connectome/conmaster/.conda/envs/swimming/bin/python">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>

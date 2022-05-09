@@ -8,7 +8,7 @@ from trainer import dwi_Trainer
 import os
 from utils.utilization import get_config
 from DataSplit import DataSplit
-# from compute_metrics import PSNR, SSIM
+from compute_metrics import PSNR, SSIM
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
@@ -22,6 +22,7 @@ data_root = '/storage/connectome/GANBERT/data/sample/sample_b0_input_ver'
 
 test_csv = pd.read_csv('/scratch/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 print(len(test_csv))
+# 36 x 96 = 3456
 
 test_data = DataSplit(data_csv=test_csv, data_dir=data_root, do_transform=True)
 data_loader_test = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=True, num_workers=16, pin_memory=False)
@@ -67,27 +68,24 @@ if opts.resume > 0:
 ## Testing
 with torch.no_grad():
     print("Testing!!!")
-    prev_grad = None
-    i = 0
-    for it, data in enumerate(data_loader_test):
+    psnr_total = []
+    ssim_total = []
+    for i, data in enumerate(data_loader_test):
         test_result = trainer.sample(data)
-        #print(test_result['dwi'].shape)   #(32, 64, 64)
 
         # calculate PSNR
-        # psnr = PSNR(test_result['dwi'], test_result['pred'])
+        psnr = PSNR(test_result['dwi'], test_result['pred'])
+        psnr_total.append(psnr)
+        print('{}th PSNR: {}'.format(i+1, psnr))
 
         # calculate SSIM
-        # ssim = SSIM()
-
-        grad = test_result['grad']
-        grad_list = '{}_{}_{}_{}'.format(grad[0], grad[1], grad[2], grad[3])
-        if np.array_equal(prev_grad, grad):
-            i = 0
-            prev_grad = grad
+        #ssim = SSIM(test_result['dwi'], test_result['pred'])
+        #ssim_total.append(ssim)
 
         # Save generated image - Testing data
-        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_real_{}.png'.format(grad_list, i+1)), test_result['dwi'][i], cmap='gray')
-        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_fake_{}.png'.format(grad_list, i+1)), test_result['pred'][i], cmap='gray')
-        i += 1
+        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_real.png'.format(i+1)), test_result['dwi'], cmap='gray')
+        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_fake.png'.format(i+1)), test_result['pred'], cmap='gray')
 
-    # print('Testing mean result\n PSNR: {}  |  SSIM: {}'.format(psnr, ssim))
+        #print('{}th PSNR: {}  |  SSIM: {}'.format(i+1, psnr, ssim))
+    print('Testing mean result\n PSNR: {}'.format(np.mean(np.array(psnr_total))))
+    #print('Testing mean result\n PSNR: {}  |  SSIM: {}'.format(np.mean(np.array(psnr_total)), np.mean(np.array(ssim))))

@@ -283,9 +283,9 @@ class Unet_Discriminator(nn.Module):
         loss_D_real_pix, loss_D_real_img = criterionGAN(pred_real_pix, True), criterionGAN(pred_real_img, True)
 
         # combine loss and calculate gradients
-        # loss_D_global = loss_D_fake_img + loss_D_real_img
+        # loss_D_global = (loss_D_fake_img + loss_D_real_img) / 2
         loss_D_global = (loss_D_fake_img + loss_D_real_img) + self.calc_gradient_penalty(input_fake_i, bvec_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
-        # loss_D_local = loss_D_fake_pix + loss_D_real_pix
+        # loss_D_local = (loss_D_fake_pix + loss_D_real_pix) / 2
         loss_D_local = (loss_D_fake_pix + loss_D_real_pix) + self.calc_gradient_penalty(input_fake_i, bvec_fake_i, dwi_real_i, dwi_fake_i, w=10, cuda_ind=0)
 
         return loss_D_global, loss_D_local

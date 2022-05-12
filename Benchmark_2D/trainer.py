@@ -100,9 +100,9 @@ class dwi_Trainer(nn.Module):
         pred_i = self.gen_a.forward(in_i, cond_i)
         loss_dwi = self.recon_criterion(pred_i, dwi_i, False)
         self.gen_a.train()
-        return_dict['dwi'] = dwi_i[:, 0].cpu().numpy()
+        return_dict['dwi'] = dwi_i[0, 0].cpu().numpy()
         bvec_vis = cond_i[0].cpu().numpy()
-        return_dict['pred'] = pred_i[:,0].detach().cpu().numpy()
+        return_dict['pred'] = pred_i[0, 0].detach().cpu().numpy()
         return_dict['grad'] = np.array([bvec_vis[0], bvec_vis[1], bvec_vis[2], bvec_vis[3]])
         return_dict['loss'] = loss_dwi.item()
         return return_dict

@@ -43,9 +43,9 @@ trainer.to(trainer.device)
 n_dwi = config['n_dwi']
 load_t1 = config['multimodal_t1']
 
-train_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
-val_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
-test_csv = pd.read_csv('/home/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
+train_csv = pd.read_csv('/scratch/connectome/conmaster/Projects/Image_Translation/data_processing/sample_train.csv', header=None)
+val_csv = pd.read_csv('/scratch/connectome/conmaster/Projects/Image_Translation/data_processing/sample_val.csv', header=None)
+test_csv = pd.read_csv('/scratch/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
 
 train_N = len(train_csv)
 val_N = len(val_csv)
@@ -165,9 +165,10 @@ while epoch < n_epochs or iterations < n_iterations:
                 # print(train_dict['t1'].shape, train_dict['dwi'].shape, train_dict['pred'].shape, train_dict['grad'].shape)
                 # print(test_ret['t1'].shape, test_ret['dwi'].shape, test_ret['pred'].shape, test_ret['grad'].shape)
 
+                print(val_ret['dwi'].shape, train_dict['dwi'].shape)
                 # Save generated image - Training data
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it+1)), train_dict['dwi'][:,:], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it+1)), train_dict['pred'][:,:], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), train_dict['dwi'][:, :], cmap='gray')
+                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), train_dict['pred'][:, :], cmap='gray')
 
                 # Save generated image - Validation data
                 plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), val_ret['dwi'][:, :], cmap='gray')

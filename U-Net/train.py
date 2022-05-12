@@ -1,20 +1,16 @@
 import os
 import numpy as np
-
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
-from model import *
-from dataset import *
-from util import *
-
 import itertools
 import matplotlib.pyplot as plt
 import time
 import csv
 
+from model import *
+from util import *
 from monai.transforms import NormalizeIntensity, AddChannel, Compose, Resize, ScaleIntensity, ToTensor
 
 def train(args, discovery_train, prisma_train, discovery_train_subjectkeys, prisma_train_subjectkeys):
@@ -100,14 +96,13 @@ def train(args, discovery_train, prisma_train, discovery_train_subjectkeys, pris
 
     ## 네트워크 학습하기
 
-    train_transform = Compose(
-        [ScaleIntensity(minv=-1.0, maxv=1.0),  # array의 각 원소를 그것의 최댓값으로 나누어주어 0~1로 바꿔주는 것. (MinMax Scaler)
-         # NormalizeIntensity(subtrahend=MEAN,divisor=STD,nonzero=False),
-         # Label Image 를 Tanh()의 dynamic range와 동일하게 만들기 위해 -1~1로 scaling 해줌
-         # #Nonzero=False로 해야 값이 0인 부분(배경)이 포함되지 않게됨
-         AddChannel(),
-         Resize(resize),
-         ToTensor()])
+    train_transform = Compose([ScaleIntensity(minv=-1.0, maxv=1.0),  # array의 각 원소를 그것의 최댓값으로 나누어주어 0~1로 바꿔주는 것. (MinMax Scaler)
+                                # NormalizeIntensity(subtrahend=MEAN,divisor=STD,nonzero=False),
+                                # Label Image 를 Tanh()의 dynamic range와 동일하게 만들기 위해 -1~1로 scaling 해줌
+                                # #Nonzero=False로 해야 값이 0인 부분(배경)이 포함되지 않게됨
+                                AddChannel(),
+                                Resize(resize),
+                                ToTensor()])
 
     # 기존 cycleGAN (high CPU cost)
     # transform_train = transforms.Compose([Resize(shape=(286, 286, nch)),

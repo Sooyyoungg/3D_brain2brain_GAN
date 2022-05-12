@@ -69,7 +69,7 @@ class ResAdaInGen(SimpleAdaInGen):
 
         # content encoder
         self.enc = AdaEncoder(n_downsample, n_res, input_dim, dim, 'adain', activ, pad_type=pad_type)  # "in"
-        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, output_dim, res_norm='adain', activ='none', pad_type=pad_type)# 'sigmoid'
+        self.dec = Decoder(n_downsample, n_res, self.enc.output_dim, output_dim, res_norm='adain', activ='tanh', pad_type=pad_type)# 'sigmoid'
 
         # MLP to generate AdaIN parameters
         self.mlp_enc = MLP(style_dim, self.get_num_adain_params(self.enc), mlp_dim, 3, norm='none', activ=activ)

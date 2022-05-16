@@ -72,8 +72,8 @@ with torch.no_grad():
     ssim_total = []
     for i, data in enumerate(data_loader_test):
         test_result = trainer.sample(data)
-        print(np.min(test_result['dwi']), np.max(test_result['dwi']))
-        print(np.min(test_result['pred']), np.max(test_result['pred']))
+        # print(np.min(test_result['dwi']), np.max(test_result['dwi']))
+        # print(np.min(test_result['pred']), np.max(test_result['pred']))
 
         # calculate PSNR
         psnr = PSNR(test_result['dwi'], test_result['pred'])

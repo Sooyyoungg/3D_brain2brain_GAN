@@ -8,12 +8,12 @@ import glob
 import math
 from math import exp
 from PIL import Image
-from DataSplit import DataSplit
+# from DataSplit import DataSplit
 
 ######################################
 ## Check MIN & MAX values of images ##
 ######################################
-def main():
+# def main():
     # # load input data
     # data_root = '/storage/connectome/GANBERT/data/sample/sample_b0_input_ver'
     # test_csv = pd.read_csv('/scratch/connectome/conmaster/Projects/Image_Translation/data_processing/sample_test.csv', header=None)
@@ -47,37 +47,37 @@ def main():
     # print("----->", s_min, s_max, d_min, d_max) # -1. & 1.
 
     # load output data
-    output_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input_wgangp/Test'
+    # output_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input_wgangp/Test'
+    # #
+    # fake_images = []
+    # real_images = []
+    # for img in glob.glob(output_dir+'/*fake.png'):
+    #     fake_images.append(np.array(Image.open(img)))
+    # for img in glob.glob(output_dir+'/*real.png'):
+    #     real_images.append(np.array(Image.open(img)))
     #
-    fake_images = []
-    real_images = []
-    for img in glob.glob(output_dir+'/*fake.png'):
-        fake_images.append(np.array(Image.open(img)))
-    for img in glob.glob(output_dir+'/*real.png'):
-        real_images.append(np.array(Image.open(img)))
-
-    # Check min & max pixel value of output image
-    f_min = r_min = 10000000
-    f_max = r_max = -10000000
-    for fake in fake_images:
-        fake_min = np.min(fake)
-        fake_max = np.max(fake)
-        print(fake_min, fake_max)
-        if f_min > fake_min:
-            f_min = fake_min
-        if f_max < fake_max:
-            f_max = fake_max
-
-    for real in real_images:
-        real_min = np.min(real)
-        real_max = np.max(real)
-        print(real_min, real_max)
-        if r_min > real_min:
-            r_min = real_min
-        if r_max < real_max:
-            r_max = real_max
-
-    print("----->", f_min, f_max, r_min, r_max)
+    # # Check min & max pixel value of output image
+    # f_min = r_min = 10000000
+    # f_max = r_max = -10000000
+    # for fake in fake_images:
+    #     fake_min = np.min(fake)
+    #     fake_max = np.max(fake)
+    #     print(fake_min, fake_max)
+    #     if f_min > fake_min:
+    #         f_min = fake_min
+    #     if f_max < fake_max:
+    #         f_max = fake_max
+    #
+    # for real in real_images:
+    #     real_min = np.min(real)
+    #     real_max = np.max(real)
+    #     print(real_min, real_max)
+    #     if r_min > real_min:
+    #         r_min = real_min
+    #     if r_max < real_max:
+    #         r_max = real_max
+    #
+    # print("----->", f_min, f_max, r_min, r_max)
 
 ######################################
 ## Calculate metrics : PSNR, SSIM ##
@@ -92,6 +92,17 @@ def PSNR(real_img, fake_img):
     pixel_max = np.max(real_img) - np.min(real_img)
     psnr = 10 * math.log10(pixel_max ** 2 / mse)
     return psnr
+
+def MAE_MSE(real_img, fake_img):
+    pix_abs = 0
+    pix_sqrt = 0
+    for i in range(real_img.shape[0]):
+        for j in range(real_img.shape[1]):
+            pix_abs += torch.abs(real_img[i, j] - fake_img[i, j])
+            pix_sqrt += math.sqrt(real_img[i, j] - fake_img[i, j])
+    mae = pix_abs / (real_img.shape[0] * real_img.shape[1])
+    mse = pix_sqrt / (real_img.shape[0] * real_img.shape[1])
+    return mae, mse
 
 def gaussian(window_size, sigma):
     gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])

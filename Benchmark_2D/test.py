@@ -8,12 +8,11 @@ from trainer import dwi_Trainer
 import os
 from utils.utilization import get_config
 from DataSplit import DataSplit
-from compute_metrics import PSNR, SSIM
+from compute_metrics import PSNR, SSIM, MAE_MSE
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='smri2dwi.yaml', help='Path to the config file.')
 parser.add_argument('--data_root', type=str, default='', help='Path to the data, if None, get from config files')
-parser.add_argument("--resume", type=int, default=0)
 opts = parser.parse_args()
 config = get_config(opts.config)
 
@@ -34,38 +33,35 @@ trainer.to(trainer.device)
 if config['pretrained'] != '':
     trainer.resume(config['pretrained'])
 
-load_epoch = int(opts.resume)
+log_dir = config['log_dir']
+load_epoch = 0
 iterations = 0
-if opts.resume > 0:
-    # 가장 마지막으로 학습된 log 기록을 통해서 어디까지 학습됐는지 불러오기
-    with open(log_dir + '/latest_log.txt', 'r') as f:
-        x = f.readlines()[0]
-        load_epoch, iterations = int(x.split(',')[0]), int(x.split(',')[1])
-        if load_epoch == -1:
-            load_epoch = int(iterations/ len(data_loader_train))
-        if iterations == -1:
-            iterations = load_epoch*len(data_loader_train)
 
-    # 학습된 부분까지의 model 불러오기
-    load_suffix = 'epoch%d.pt'%load_epoch
-    if not os.path.exists(log_dir + '/gen_' + load_suffix):
-        load_suffix = 'latest.pt'
-    if not os.path.exists(log_dir + '/gen_latest.pt'):
-        load_suffix = 'best.pt'
-    print('* Resume training from {}'.format(load_suffix))
+# 가장 마지막으로 학습된 log 기록을 통해서 어디까지 학습됐는지 불러오기
+with open(log_dir + '/latest_log.txt', 'r') as f:
+    x = f.readlines()[0]
+    load_epoch, iterations = int(x.split(',')[0]), int(x.split(',')[1])
+    if load_epoch == -1:
+        load_epoch = int(iterations/ len(data_loader_train))
+    if iterations == -1:
+        iterations = load_epoch*len(data_loader_train)
 
-    state_dict = torch.load(log_dir + '/gen_'+load_suffix)
-    trainer.gen_a.load_state_dict(state_dict['a'])
+# 학습된 부분까지의 model 불러오기
+load_suffix = 'epoch%d.pt'%load_epoch
+if not os.path.exists(log_dir + '/gen_' + load_suffix):
+    load_suffix = 'latest.pt'
+if not os.path.exists(log_dir + '/gen_latest.pt'):
+    load_suffix = 'best.pt'
+print('* Resume training from {}'.format(load_suffix))
 
-    opt_dict = torch.load(log_dir + '/opt_' + load_suffix)
-    trainer.gen_opt.load_state_dict(opt_dict['gen'])
+state_dict = torch.load(log_dir + '/gen_'+load_suffix, map_location=trainer.device)
+trainer.gen_a.load_state_dict(state_dict['a'])
 
-    if trainer.gan_w > 0:
-        state_dict = torch.load(log_dir + '/dis_'+load_suffix)
-        trainer.dis.load_state_dict(state_dict['dis'])
-        trainer.dis_opt.load_state_dict(opt_dict['dis'])
+opt_dict = torch.load(log_dir + '/opt_' + load_suffix, map_location=trainer.device)
+trainer.gen_opt.load_state_dict(opt_dict['gen'])
 
 ## Testing
+trainer.eval()
 with torch.no_grad():
     print("Testing!!!")
     psnr_total = []
@@ -78,15 +74,19 @@ with torch.no_grad():
         # calculate PSNR
         psnr = PSNR(test_result['dwi'], test_result['pred'])
         psnr_total.append(psnr)
-        print('{}th PSNR: {}'.format(i+1, psnr))
 
         # calculate SSIM
         #ssim = SSIM(test_result['dwi'], test_result['pred'])
         #ssim_total.append(ssim)
 
+        # calculate MAE & MSE
+        mae, mse = MAE_MSE(test_result['dwi'], test_result['pred'])
+        print('{}th PSNR: {}  |  MAE: {}  |  MSE: {}'.format(i+1, psnr, mae, mse))
+
+
         # Save generated image - Testing data
-        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_real.png'.format(i+1)), test_result['dwi'], cmap='gray')
-        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_fake.png'.format(i+1)), test_result['pred'], cmap='gray')
+        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_real.png'.format(i+1)), test_result['dwi'][:, :], cmap='gray')
+        plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_fake.png'.format(i+1)), test_result['pred'][:, :], cmap='gray')
 
         #print('{}th PSNR: {}  |  SSIM: {}'.format(i+1, psnr, ssim))
     print('Testing mean result\n PSNR: {}'.format(np.mean(np.array(psnr_total))))

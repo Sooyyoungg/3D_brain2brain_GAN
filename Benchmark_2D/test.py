@@ -66,6 +66,8 @@ with torch.no_grad():
     print("Testing!!!")
     psnr_total = []
     ssim_total = []
+    mae_total = []
+    mse_total = []
     for i, data in enumerate(data_loader_test):
         test_result = trainer.sample(data)
         # print(np.min(test_result['dwi']), np.max(test_result['dwi']))
@@ -76,18 +78,18 @@ with torch.no_grad():
         psnr_total.append(psnr)
 
         # calculate SSIM
-        #ssim = SSIM(test_result['dwi'], test_result['pred'])
-        #ssim_total.append(ssim)
+        ssim = SSIM(test_result['dwi'], test_result['pred'])
+        ssim_total.append(ssim)
 
         # calculate MAE & MSE
         mae, mse = MAE_MSE(test_result['dwi'], test_result['pred'])
-        print('{}th PSNR: {}  |  MAE: {}  |  MSE: {}'.format(i+1, psnr, mae, mse))
+        mae_total.append(mae)
+        mse_total.append(mse)
 
+        print('{}th PSNR: {}  |  SSIM: {}  |  MAE: {}  |  MSE: {}'.format(i+1, psnr, ssim, mae, mse))
 
         # Save generated image - Testing data
         plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_real.png'.format(i+1)), test_result['dwi'][:, :], cmap='gray')
         plt.imsave(os.path.join(config["img_dir"], 'Test', 'Test_{}_fake.png'.format(i+1)), test_result['pred'][:, :], cmap='gray')
 
-        #print('{}th PSNR: {}  |  SSIM: {}'.format(i+1, psnr, ssim))
-    print('Testing mean result\n PSNR: {}'.format(np.mean(np.array(psnr_total))))
-    #print('Testing mean result\n PSNR: {}  |  SSIM: {}'.format(np.mean(np.array(psnr_total)), np.mean(np.array(ssim))))
+    print('Testing mean result\n PSNR: {}  |  SSIM: {}  |  MAE: {}  |  MSE: {}'.format(np.mean(np.array(psnr_total)), np.mean(np.array(ssim_total)), np.mean(np.array(mae_total)), np.mean(np.array(mse_total))))

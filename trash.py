@@ -40,15 +40,29 @@ import imageio
 # f_min = r_min = 10000000
 # print(f_min, r_min)
 
-from Benchmark_2D.compute_metrics import PSNR, SSIM
-output_root = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input_wgangp/Val'
-total_p = []
-ll = ['0050', '0100', '0150', '0200', '0250', '0300', '0350']
-for i in range(7):
-    r_dwi = imageio.imread(output_root+'/Benchmark_0300_{}_real.png'.format(ll[i]))
-    g_dwi = imageio.imread(output_root+'/Benchmark_0300_{}_fake.png'.format(ll[i]))
-    psnr = PSNR(r_dwi, g_dwi)
-    total_p.append(psnr)
-    print('{}th PSNR: {}'.format(i+1, psnr))
-total_p = np.array(total_p)
-print(np.mean(total_p))
+# from Benchmark_2D.compute_metrics import PSNR, SSIM
+# output_root = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/b0_input_wgangp/Val'
+# total_p = []
+# ll = ['0050', '0100', '0150', '0200', '0250', '0300', '0350']
+# for i in range(7):
+#     r_dwi = imageio.imread(output_root+'/Benchmark_0300_{}_real.png'.format(ll[i]))
+#     g_dwi = imageio.imread(output_root+'/Benchmark_0300_{}_fake.png'.format(ll[i]))
+#     psnr = PSNR(r_dwi, g_dwi)
+#     total_p.append(psnr)
+#     print('{}th PSNR: {}'.format(i+1, psnr))
+# total_p = np.array(total_p)
+# print(np.mean(total_p))
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+import numpy as np
+
+input = torch.Tensor(np.array([[[ [1,1,1,0,0], [0,1,1,1,0], [0,0,1,1,1], [0,0,1,1,0], [0,1,1,0,0] ]]]))
+filter = torch.Tensor(np.array([[[ [1,0,1], [0,1,0], [1,0,1] ]]]))
+print(input.shape, filter.shape)
+input = Variable(input, requires_grad=True)
+filter = Variable(filter)
+out = F.conv2d(input, filter)
+print(out.shape)

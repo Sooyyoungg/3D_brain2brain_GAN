@@ -98,8 +98,8 @@ def MAE_MSE(real_img, fake_img):
     pix_sqrt = 0
     for i in range(real_img.shape[0]):
         for j in range(real_img.shape[1]):
-            pix_abs += torch.abs(real_img[i, j] - fake_img[i, j])
-            pix_sqrt += math.sqrt(real_img[i, j] - fake_img[i, j])
+            pix_abs += np.abs(real_img[i, j] - fake_img[i, j])
+            pix_sqrt += (real_img[i, j] - fake_img[i, j]) ** 2
     mae = pix_abs / (real_img.shape[0] * real_img.shape[1])
     mse = pix_sqrt / (real_img.shape[0] * real_img.shape[1])
     return mae, mse
@@ -111,17 +111,19 @@ def gaussian(window_size, sigma):
 def create_window(window_size, channel):
     _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
     _2D_window = _1D_window.mm(_1D_window.t()).float().unsqueeze(0)
-    print(_1D_window.shape, _2D_window.shape)
+    # print(_1D_window.shape, _2D_window.shape)  # torch.Size([5, 1]) torch.Size([1, 5, 5])
     window = Variable(_2D_window.expand(channel, window_size, window_size).contiguous())
     return window
 
 def SSIM(real_img, fake_img, size_average=True):
-    real_img = torch.from_numpy(real_img)
-    fake_img = torch.from_numpy(fake_img)
+    real_img = torch.reshape(torch.from_numpy(real_img), (1, 1, 64, 64))
+    fake_img = torch.reshape(torch.from_numpy(fake_img), (1, 1, 64, 64))
     # real_img shape: 1x64x64
     channel = real_img.shape[0]
     window_size = 5
+    # window shape: 1x5x5
     window = create_window(window_size, channel)
+    window = torch.reshape(window, (1, 1, 5, 5))
 
     mu1 = F.conv2d(real_img, window, padding=window_size // 2, groups=channel)
     mu2 = F.conv2d(fake_img, window, padding=window_size // 2, groups=channel)

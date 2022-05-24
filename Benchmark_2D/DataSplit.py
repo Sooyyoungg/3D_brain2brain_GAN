@@ -25,11 +25,15 @@ class DataSplit(Dataset):
             sub = self.data_csv.iloc[i][1]
 
             # Structure & diffusion-weighted image & Gradient
-            struct = np.load(self.data_dir + '/' + sub + '.T1.npy')  # (64, 64, 64)
-            b0_raw = np.load(self.data_dir + '/' + sub + '.b0.npy')  # (64, 64, 64, 7)
-            b0 = np.transpose(b0_raw, (3, 0, 1, 2))  # (7, 64, 64, 64)
-            dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (64, 64, 64, 96)
-            dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))  # (96, 64, 64, 64)
+            struct = np.load(self.data_dir + '/' + sub + '.T1.npy')  # (140, 140, 140)
+            # b0_raw = np.load(self.data_dir + '/' + sub + '.b0.npy')  # (64, 64, 64, 7)
+            # b0_total = np.transpose(b0_raw, (3, 0, 1, 2))  # (7, 64, 64, 64)
+            # b0_mean = np.mean(b0_total, axis=0)
+            # b0 = np.reshape(b0_mean, (1, 64, 64, 64))
+            b0 = np.load(self.data_dir + '/' + sub + '.meanb0.npy') # (140, 140, 140)
+
+            dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (140, 140, 140, 찍은 dwi 수 - b0 수)
+            dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))  # (N, 64, 64, 64)
             grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
 
             # change grad file into numpy
@@ -42,15 +46,15 @@ class DataSplit(Dataset):
             grad_total = np.array(gg)  # (96, 4)
 
             for j in range(dwi_total.shape[0]):
-                input_3D = np.concatenate((struct.reshape((1, 64, 64, 64)), b0), axis=0)  # (8, 64, 64, 64)
-                input = input_3D[:, :, :, 32] # (8, 64, 64)
+                input_3D = np.concatenate((struct, b0), axis=0).reshape((2, 64, 64, 64))  # (2, 140, 140, 140)
+                input = input_3D[:, :, :, 32] # (2, 64, 64)
                 dwi = dwi_total[j, :, :, 32]  # (64, 64)
                 grad = grad_total[j]  # (4)
                 self.total_st.append(input)
                 self.total_dwi.append(dwi)
                 self.total_grad.append(grad)
 
-        self.total_st = np.array(self.total_st)  # (12288, 8, 64, 64)
+        self.total_st = np.array(self.total_st)  # (12288, 2, 64, 64)
         self.total_dwi = np.array(self.total_dwi)  # (12288, 64, 64)
         self.total_grad = np.array(self.total_grad)  # (12288, 4)
 

@@ -7,7 +7,7 @@ display_size: 1              # How many images do you want to display each time
 snapshot_save_iter: 5        # How often do you want to save trained models
 latest_save_iter: 1          # How often do you want to save trained models
 log_iter: 201                # How often do you want to log the training stats
-log_dir: './logs/meanb0_wgangp'          # Log prefix to save checkpoints
+log_dir: './logs/firstb0_wgangp'          # Log prefix to save checkpoints
 pretrained:  ''              # Start from specified checkpoint if not ''
 gpu_ids: '0'
 

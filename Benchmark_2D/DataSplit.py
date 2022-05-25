@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import os
+import nibabel as nib
 from monai.transforms import ScaleIntensity, NormalizeIntensity
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -25,15 +27,18 @@ class DataSplit(Dataset):
             sub = self.data_csv.iloc[i][1]
 
             # Structure & diffusion-weighted image & Gradient
-            struct = np.load(self.data_dir + '/' + sub + '.T1.npy')  # (140, 140, 140)
-            # b0_raw = np.load(self.data_dir + '/' + sub + '.b0.npy')  # (64, 64, 64, 7)
-            # b0_total = np.transpose(b0_raw, (3, 0, 1, 2))  # (7, 64, 64, 64)
+            struct = np.load(self.data_dir + '/' + sub + '.T1.npy')  # (64, 64, 64)
+            b0_raw = np.load(self.data_dir + '/' + sub + '.b0.npy')  # (64, 64, 64, 7)
+            b0_total = np.transpose(b0_raw, (3, 0, 1, 2))  # (7, 64, 64, 64)
             # b0_mean = np.mean(b0_total, axis=0)
+            # img = nib.Nifti1Image(b0_mean, np.eye(4))
+            # img.to_filename(os.path.join('/scratch/connectome/conmaster/', '{}_b0_manual_mean.nii.gz'.format(sub)))
             # b0 = np.reshape(b0_mean, (1, 64, 64, 64))
-            b0 = np.load(self.data_dir + '/' + sub + '.meanb0.npy') # (140, 140, 140)
+            b0 = b0_total[0, :, :, :]
+            print(b0.shape)
 
-            dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (140, 140, 140, 찍은 dwi 수 - b0 수)
-            dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))  # (N, 64, 64, 64)
+            dwi_raw = np.load(self.data_dir + '/' + sub + '.dwi.npy')  # (64, 64, 64, 96)
+            dwi_total = np.transpose(dwi_raw, (3, 0, 1, 2))  # (96, 64, 64, 64)
             grad_file = open(self.data_dir + '/' + sub + '.grad.b').read()
 
             # change grad file into numpy
@@ -46,7 +51,7 @@ class DataSplit(Dataset):
             grad_total = np.array(gg)  # (96, 4)
 
             for j in range(dwi_total.shape[0]):
-                input_3D = np.concatenate((struct, b0), axis=0).reshape((2, 64, 64, 64))  # (2, 140, 140, 140)
+                input_3D = np.concatenate((struct.reshape((1, 64, 64, 64)), b0), axis=0)  # (2, 64, 64, 64)
                 input = input_3D[:, :, :, 32] # (2, 64, 64)
                 dwi = dwi_total[j, :, :, 32]  # (64, 64)
                 grad = grad_total[j]  # (4)

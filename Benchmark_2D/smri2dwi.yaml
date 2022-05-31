@@ -63,4 +63,4 @@ data_root: /storage/connectome/GANBERT/data/sample/sample_b0_input_ver       # d
 # dataset folder location
 dataset:  ABCD
 n_dwi: 2
-img_dir: /scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/mean_b0_input_wgangp
+img_dir: /scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Benchmark_2D/Generated_images/first_b0_input_wgangp

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
   <component name="NewModuleRootManager">
-    <orderEntry type="jdk" jdkName="Remote Python 3.7.9 (sftp://conmaster@localhost:6000/home/connectome/conmaster/.conda/envs/swimming/bin/python)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (3D_brain2brain_GAN)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

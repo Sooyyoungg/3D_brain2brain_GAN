@@ -1,10 +1,10 @@
 import torch
 from numpy import inf
 import torch.nn as nn
-from PIL import Image
+# from PIL import Image
 import numpy as np
-import glob
-import imageio
+# import glob
+# import imageio
 
 # rand = torch.randn(16, 100)
 # print(rand.shape)
@@ -23,8 +23,8 @@ import imageio
 # torch.backends.cudnn.enabled = True
 # print(torch.backends.cudnn.enabled)
 #
-# for i in range(1, 10):
-#     print(i)
+for i in range(10):
+    print(i)
 
 # from DCGAN import *
 # from DCGAN.model import GAN_3D
@@ -53,16 +53,16 @@ import imageio
 # total_p = np.array(total_p)
 # print(np.mean(total_p))
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-import numpy as np
-
-input = torch.Tensor(np.array([[[ [1,1,1,0,0], [0,1,1,1,0], [0,0,1,1,1], [0,0,1,1,0], [0,1,1,0,0] ]]]))
-filter = torch.Tensor(np.array([[[ [1,0,1], [0,1,0], [1,0,1] ]]]))
-print(input.shape, filter.shape)
-input = Variable(input, requires_grad=True)
-filter = Variable(filter)
-out = F.conv2d(input, filter)
-print(out.shape)
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
+# from torch.autograd import Variable
+# import numpy as np
+#
+# input = torch.Tensor(np.array([[[ [1,1,1,0,0], [0,1,1,1,0], [0,0,1,1,1], [0,0,1,1,0], [0,1,1,0,0] ]]]))
+# filter = torch.Tensor(np.array([[[ [1,0,1], [0,1,0], [1,0,1] ]]]))
+# print(input.shape, filter.shape)
+# input = Variable(input, requires_grad=True)
+# filter = Variable(filter)
+# out = F.conv2d(input, filter)
+# print(out.shape)

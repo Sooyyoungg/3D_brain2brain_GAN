@@ -84,10 +84,13 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % netD)
     return init_net(net, init_type, init_gain, gpu_ids)
 
+
 ##############################################################################
 # Generator & Discriminator
 # Two choices for Generator : Resnet & U-net
 ##############################################################################
+
+## Generator
 class ResnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6, padding_type='reflect'):
         assert(n_blocks >= 0)
@@ -237,11 +240,69 @@ class UnetSkipConnectionBlock(nn.Module):
         else:
             return torch.cat([x, self.model(x)], 1)
 
+## Discriminator
+# Defines a PatchGAN discriminator
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layer=3, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
 
+        kw = 4      # kernel size
+        padw = 1    # padding size
+
+        # Concatenator
+        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
+
+        # image size x 1/2 & # of filter x 2
+        nf_mult = 1
+        nf_mult_prev = 1
+        for n in range(1, n_layers):  # gradually increase the number of filters
+            nf_mult_prev = nf_mult
+            nf_mult = min(2**n, 8)
+            sequence += [
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        # image size & # of filter 그대로 계산만
+        nf_mult_prev = nf_mult
+        nf_mult = min(2 ** n_layers, 8)
+        sequence += [
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        # output 1 channel prediction map
+        sequence += [
+            nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+        self.model = nn.Sequential(*sequence)
+
+    def forward(self, input):
+        return self.model(input)
+
+# Defines a 1x1 PatchGAN discriminator (pixelGAN)
+class PixelDiscriminator(nn.Module):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
+        super(PixelDiscriminator, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        self.net = [
+            nn.Conv2d(input_nc, ndf, kernel_size=1, stride=1, padding=0),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=1, stride=1, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(ndf * 2, 1, kernel_size=1, stride=1, padding=0, bias=use_bias)
+        ]
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        return self.net(input)

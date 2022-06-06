@@ -200,14 +200,17 @@ class UnetSkipConnectionBlock(nn.Module):
         if input_nc is None:
             input_nc = outer_nc
 
-        downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4, stride=2, padding=1, bias=use_bias) # image size x 1/2
         downrelu = nn.LeakyReLU(0.2, True)
         downnorm = norm_layer(inner_nc)
         uprelu = nn.ReLU(True)
         upnorm = norm_layer(outer_nc)
 
+        # 여기서 inner most를 제외하고 inner_nc * 2가 channel 수로 들어가는 이유
+        # : skip connection을 하기 때문에 동일한 level에서의 encoder의 결과 + 같은 크기의 decoder output (둘의 output size 동일)
+        # innermost에서는 encoder의 가장 마지막 layer의 output을 그대로 사용하기 때문에 2배일 필요 X
         if outermost:
-            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1)
+            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1) # image size x 2
             down = [downconv]
             up = [uprelu, upconv, nn.Tanh()]
             model = down + [submodule] + up
@@ -220,15 +223,25 @@ class UnetSkipConnectionBlock(nn.Module):
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1, bias=use_dropout)
             down = [downrelu, downconv, downnorm]
             up = [uprelu, upconv, upnorm]
-
             if use_dropout:
                 model = down + [submodule] + up + [nn.Dropout(0.5)]
             else:
                 model = down + [submodule] + up
+
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
+        # 마지막 layer의 output은 지전해준 channel의 개수에 맞춰야 하므로 skip connection 적용하지 X
         if self.outermost:
             return self.model(x)
         else:
             return torch.cat([x, self.model(x)], 1)
+
+class NLayerDiscriminator(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layer=3, norm_layer=nn.BatchNorm2d):
+        super(NLayerDiscriminator, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+

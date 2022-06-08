@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 from torch import nn
-from . import networks
+from networks import *
 
+# base_model.py 사용하지 X
 class Pix2Pix(nn.Module):
     def __init__(self, config):
         super(Pix2Pix, self).__init__()

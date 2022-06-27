@@ -12,10 +12,9 @@ class Pix2Pix(nn.Module):
         self.config = config
         self.device = torch.device('cuda:' + str(self.config.gpu_ids[0]) if torch.cuda.is_available() else 'cpu')
 
-        self.netG = networks.define_G(self.config.input_nc, self.config.output_nc, self.config.ngf, self.config.netG, self.config.initial, self.config.norm,
-                                      not self.config.no_dropout, self.config.init_type, self.config.init_gain, self.config.gpu_ids)
-        self.netD = networks.define_D(self.config.input_nc + self.config.output_nc, self.config.ndf, self.config.netD,
-                                      self.config.n_layers_D, self.config.norm, self.config.init_type, self.config.init_gain, self.config.gpu_ids)
+        self.netG = networks.define_G(self.config.initial, self.config.init_type, self.config.init_gain, self.config.gpu_ids)
+        self.netD = networks.define_D(self.config.input_nc + self.config.output_nc, self.config.ndf,
+                                      self.config.norm, self.config.init_type, self.config.init_gain, self.config.gpu_ids)
 
         self.criterion_GAN = networks.GANLoss(config.gan_mode).to(self.device)
         self.criterion_L1 = torch.nn.L1Loss()

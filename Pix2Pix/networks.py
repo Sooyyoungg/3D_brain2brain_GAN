@@ -79,36 +79,30 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[], initial=True):
         init_weights(net, init_type, init_gain=init_gain)
     return net
 
-def define_G(input_nc, output_nc, ngf, netG, initial=True, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
-    norm_layer = get_norm_layer(norm_type=norm)
-
-    if netG == 'unet_128':
-        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
-    elif netG == 'unet_256':
-        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
-    else:
+def define_G(initial=True, init_type='normal', init_gain=0.02, gpu_ids=[]):
+    try:
+        net = UnetGenerator()
+    except:
         raise NotImplementedError('Generator model name [%s] is not recognized' % netG)
     return init_net(net, init_type, init_gain, gpu_ids, initial)
 
-def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_D(input_nc, ndf, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     norm_layer = get_norm_layer(norm_type=norm)
 
-    if netD == 'basic':  # default PatchGAN classifier
-        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
-    elif netD == 'n_layers':  # more options
-        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
-    else:
+    try:
+        net = NLayerDiscriminator(input_nc, ndf, norm_layer=norm_layer)
+    except:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % netD)
     return init_net(net, init_type, init_gain, gpu_ids)
 
 class UnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self):
         super(UnetGenerator, self).__init__()
 
         # Conv - BatchNorm - ReLU
         def CBR2d(in_channels, out_channels, kernel=3, stride=1, padding=1, bias=True):
             layers = []
-            layers += [nn.Conv2d(in_channels, out_channels, kernel, stride, padding, bias)]
+            layers += [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel, stride=stride, padding=padding, bias=bias)]
             layers += [nn.BatchNorm2d(num_features=out_channels)]
             layers += [nn.ReLU()]
 
@@ -116,7 +110,7 @@ class UnetGenerator(nn.Module):
             return cbr
 
         ## Contracting Path
-        self.enc1_1 = CBR2d(in_channels=1, out_channels=64)
+        self.enc1_1 = CBR2d(in_channels=2, out_channels=64)
         self.enc1_2 = CBR2d(in_channels=64, out_channels=64)
 
         self.pool1 = nn.MaxPool2d(kernel_size=2)
@@ -174,43 +168,34 @@ class UnetGenerator(nn.Module):
 ## Discriminator
 # Defines a PatchGAN discriminator
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=1, norm_layer=nn.BatchNorm2d):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
 
-        kw = 4      # kernel size
-        padw = 1    # padding size
-
         # Concatenator
-        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]
-
-        # image size x 1/2 & # of filter x 2
-        nf_mult = 1
-        nf_mult_prev = 1
-        for n in range(1, n_layers):  # gradually increase the number of filters
-            nf_mult_prev = nf_mult
-            nf_mult = min(2**n, 8)
-            sequence += [
-                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                norm_layer(ndf * nf_mult),
-                nn.LeakyReLU(0.2, True)
-            ]
-
-        # image size & # of filter 그대로 계산만
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
+        sequence = [nn.Conv2d(input_nc, ndf, kernel_size=3, stride=1, padding=1), nn.LeakyReLU(0.2, True)]
         sequence += [
-            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
-            norm_layer(ndf * nf_mult),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.LeakyReLU(0.2, True)
+        ]
+        sequence += [
+            nn.Conv2d(ndf * 2, ndf * 4, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            norm_layer(ndf * 4),
+            nn.LeakyReLU(0.2, True)
+        ]
+        sequence += [nn.Conv2d(ndf * 4, ndf * 4, kernel_size=6, stride=1, padding=1)]
+        sequence += [
+            nn.Conv2d(ndf * 4, ndf * 8, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            norm_layer(ndf * 8),
             nn.LeakyReLU(0.2, True)
         ]
 
         # output 1 channel prediction map
-        sequence += [
-            nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+        sequence += [nn.Conv2d(ndf * 8, 1, kernel_size=3, stride=1, padding=1)]
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):

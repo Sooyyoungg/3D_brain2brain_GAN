@@ -32,7 +32,7 @@ def main():
     model = Pix2Pix(config)
     model.to(device)
 
-    torchsummary.summary(model, (1, 140, 140), device='cpu')
+    torchsummary.summary(model, (2, 140, 140), device='cpu')
 
     train_writer = tensorboardX.SummaryWriter(config.log_dir)
 
@@ -58,8 +58,8 @@ def main():
                 # f_image = ((f_image + 1) / 2) * 255.0 ...???????????????????????????????????????????????
                 # r_image = ((r_image + 1) / 2) * 255.0 ...???????????????????????????????????????????????
                 # save
-                cv2.imwrite('{}/Train/{}_{}_fake_depth.png'.format(config.img_dir, epoch+1, i+1), f_image)
-                cv2.imwrite('{}/Train/{}_{}_real_depth.png'.format(config.img_dir, epoch+1, i+1), r_image)
+                cv2.imwrite('{}/Train/{}_{}_fake_dwi.png'.format(config.img_dir, epoch+1, i+1), f_image)
+                cv2.imwrite('{}/Train/{}_{}_real_dwi.png'.format(config.img_dir, epoch+1, i+1), r_image)
 
             # save & print loss values
             train_writer.add_scalar('Loss_G_RMSE', train_dict['G_RMSE_loss'], tot_itr)

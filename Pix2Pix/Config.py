@@ -35,11 +35,8 @@ class Config:
     output_nc = 1
     ngf = 64
     ndf = 64
-    netG = 'unet_256'
-    netD = 'basic'
-    n_layers_D = 3
-    initial = True     # Initialize the Generator
-    norm = 'instance'   # [instance | batch | none]
-    init_type = 'normal' # [normal | xavier | kaiming | orthogonal]
-    init_gain = 0.02    # scaling factor for normal, xavier and orthogonal
+    initial = True        # Initialize the Generator
+    norm = 'instance'     # [instance | batch | none]
+    init_type = 'normal'  # [normal | xavier | kaiming | orthogonal]
+    init_gain = 0.02      # scaling factor for normal, xavier and orthogonal
     no_dropout = 'store_true'   # no dropout for generator

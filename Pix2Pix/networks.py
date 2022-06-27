@@ -95,12 +95,44 @@ def define_D(input_nc, ndf, norm='batch', init_type='normal', init_gain=0.02, gp
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % netD)
     return init_net(net, init_type, init_gain, gpu_ids)
 
+###############################################################################
+# Generator & Discriminator & Mapping Networks
+###############################################################################
+
+class AdaIN(nn.Module):
+    def __init__(self, style_dim, num_features):
+        super().__init__()
+        self.norm = nn.InstanceNorm2d(num_features, affine=False)
+        self.fc = nn.Linear(style_dim, num_features * 2)
+
+    def forward(self, x, s):
+        h = self.fc(s)
+        h = h.view(h.size(0), h.size(1), 1, 1)
+        gamma, beta = torch.chunk(h, chunks=2, dim=1)
+        return (1 + gamma) * self.norm(x) + beta
+
+
+class MappingNetwork(nn.Module):
+    def __init__(self):
+        super(MappingNetwork, self).__init__()
+
+        layers = []
+        layers += [nn.Linear(1, 64), nn.ReLU()]
+        layers += [nn.Linear(62, 128), nn.ReLU()]
+        layers += [nn.Linear(128, 256), nn.ReLU()]
+        layers += [nn.Linear(256, 1)]
+
+        self.mapping = nn.Sequential(*layers)
+
+    def forward(self, cond):
+        return self.mapping(cond)
+
 class UnetGenerator(nn.Module):
     def __init__(self):
         super(UnetGenerator, self).__init__()
 
         # Conv - BatchNorm - ReLU
-        def CBR2d(in_channels, out_channels, kernel=3, stride=1, padding=1, bias=True):
+        def CBR2d(in_channels=2, out_channels=64, kernel=3, stride=1, padding=1, bias=True):
             layers = []
             layers += [nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel, stride=stride, padding=padding, bias=bias)]
             layers += [nn.BatchNorm2d(num_features=out_channels)]
@@ -123,22 +155,36 @@ class UnetGenerator(nn.Module):
         self.enc3_1 = CBR2d(in_channels=128, out_channels=256)
 
         ## Expansing path
-        self.dec3_1 = CBR2d(in_channels=256, out_channels=128)
+        self.dec3_1_C = nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.dec3_1_A = AdaIN(style_dim=1, num_features=128 + 1)
+        self.dec3_1_R = nn.ReLU()
 
-        self.unpool2 = nn.ConvTranspose2d(in_channels=128, out_channels=128, kernel_size=2, stride=2, padding=0, bias=True)
+        self.unpool2 = nn.ConvTranspose2d(in_channels=128 + 1, out_channels=128, kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec2_2 = CBR2d(in_channels=2 * 128, out_channels=128)
-        self.dec2_1 = CBR2d(in_channels=128, out_channels=64)
+        self.dec2_2_C = nn.Conv2d(in_channels=2 * 128, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.dec2_2_A = AdaIN(style_dim=1, num_features=128 + 1)
+        self.dec2_2_R = nn.ReLU()
 
-        self.unpool1 = nn.ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=2, stride=2, padding=0, bias=True)
+        self.dec2_1_C = nn.Conv2d(in_channels=128 + 1, out_channels=64, kernel_size=3, stride=1, padding=1, bias=True)
+        self.dec2_1_A = AdaIN(style_dim=1, num_features=64 + 1)
+        self.dec2_1_R = nn.ReLU()
 
-        self.dec1_2 = CBR2d(in_channels=2 * 64, out_channels=64)
-        self.dec1_1 = CBR2d(in_channels=64, out_channels=64)
+        self.unpool1 = nn.ConvTranspose2d(in_channels=64 + 1, out_channels=64, kernel_size=2, stride=2, padding=0, bias=True)
+
+        self.dec1_2_C = nn.Conv2d(in_channels=2 * 64, out_channels=64, kernel_size=3, stride=1, padding=1, bias=True)
+        self.dec1_2_A = AdaIN(style_dim=1, num_features=64 + 1)
+        self.dec1_2_R = nn.ReLU()
+
+        self.dec1_1 = CBR2d(in_channels=64 + 1, out_channels=64)
 
         self.fc = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1, stride=1, padding=0, bias=True)
+        self.tanh = nn.Tanh()
 
 
-    def forward(self, input):
+    def forward(self, input, cond):
+        cond = MappingNetwork(cond)
+
+        ## Encoder
         enc1_1 = self.enc1_1(input)
         enc1_2 = self.enc1_2(enc1_1)
         pool = self.pool1(enc1_2)
@@ -148,19 +194,32 @@ class UnetGenerator(nn.Module):
         pool2 = self.pool2(enc2_2)
 
         enc3_1 = self.enc3_1(pool2)
-        dec3_1 = self.dec3_1(enc3_1)
 
-        unpool2 = self.unpool2(dec3_1)
+        ## Decoder
+        dec3_1_C = self.dec3_1_C(enc3_1)
+        dec3_1_A = self.dec3_1_A(dec3_1_C, cond)
+        dec3_1_R = self.dec3_1_R(dec3_1_A)
+
+        unpool2 = self.unpool2(dec3_1_R)
         cat2 = torch.cat((unpool2, enc2_2), dim=1)
-        dec2_2 = self.dec2_2(cat2)
-        dec2_1 = self.dec2_1(dec2_2)
+        dec2_2_C = self.dec2_2_C(cat2)
+        dec2_2_A = self.dec2_2_A(dec2_2_C, cond)
+        dec2_2_R = self.dec2_2_R(dec2_2_A)
 
-        unpool1 = self.unpool1(dec2_1)
+        dec2_1_C = self.dec2_1_C(dec2_2_R)
+        dec2_1_A = self.dec2_1_A(dec2_1_C, cond)
+        dec2_1_R = self.dec2_1_R(dec2_1_A)
+
+        unpool1 = self.unpool1(dec2_1_R)
         cat1 = torch.cat((unpool1, enc1_2), dim=1)
-        dec1_2 = self.dec1_2(cat1)
-        dec1_1 = self.dec1_1(dec1_2)
+        dec1_2_C = self.dec1_2_C(cat1)
+        dec1_2_A = self.dec1_2_A(dec1_2_C, cond)
+        dec1_2_R = self.dec1_2_R(dec1_2_A)
 
-        output = self.fc(dec1_1)
+        dec1_1 = self.dec1_1(dec1_2_R)
+
+        fc = self.fc(dec1_1)
+        output = self.tanh(fc)
 
         return output
 
@@ -200,6 +259,7 @@ class NLayerDiscriminator(nn.Module):
 
     def forward(self, input):
         return self.model(input)
+
 
 ##############################################################################
 # Loss function

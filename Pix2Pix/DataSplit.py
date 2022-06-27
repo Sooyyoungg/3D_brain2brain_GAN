@@ -89,6 +89,9 @@ class DataSplit(nn.Module):
         print(b0.shape, torch.min(b0), torch.max(b0))
         print(dwi.shape, torch.min(dwi), torch.max(dwi))
 
+        struct = torch.cat((t1, b0), dim=1)
+        print(struct.shape)
+
         # Reshape
         # struct = struct.reshape((1, 64, 64))
         # dwi = dwi.reshape((1, 64, 64))

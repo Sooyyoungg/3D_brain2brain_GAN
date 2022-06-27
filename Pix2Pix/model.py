@@ -33,10 +33,11 @@ class Pix2Pix(nn.Module):
     def train(self, idx, data):
         input = data['input'].to(self.device)
         real_dwi = data['dwi'].to(self.device)
+        cond = data['cond'].to(self.device)
 
         ### forward ###
         # Generator
-        fake_dwi = self.netG(input) # Tensor (batch, 1, 66, 45)
+        fake_dwi = self.netG(input, cond) # Tensor (batch, 1, 66, 45)
 
         # Discriminator - fake
         D_fake_in = torch.cat((fake_dwi, input), dim=1)
@@ -79,10 +80,11 @@ class Pix2Pix(nn.Module):
         with torch.no_grad():
             input = data['input'].to(self.device)
             real_dwi = data['dwi'].to(self.device)
+            cond = data['cond'].to(self.device)
 
             ### forward ###
             # Generator
-            fake_dwi = self.netG(input)  # Tensor (32, 1, 66, 45)
+            fake_dwi = self.netG(input, cond)
 
             # Discriminator - fake
             D_fake_in = torch.cat((fake_dwi, input), dim=1)
@@ -114,14 +116,15 @@ class Pix2Pix(nn.Module):
     def test(self, data):
         with torch.no_grad():
             input = data['input'].to(self.device)
+            cond = data['cond'].to(self.device)
             # Generator
-            fake_dwi = self.netG(input)  # Tensor (batch_size, 1, 66, 45)
+            fake_dwi = self.netG(input, cond)
             test_dict = {}
             test_dict['fake_dwi'] = fake_dwi
         return test_dict
 
-    def forward(self, x):
-        fake_dwi = self.netG(x)
+    def forward(self, x, cond):
+        fake_dwi = self.netG(x, cond)
         D_fake_in = torch.cat((fake_dwi.detach().cpu(), x), dim=1)
         result = self.netD(D_fake_in)
         return result

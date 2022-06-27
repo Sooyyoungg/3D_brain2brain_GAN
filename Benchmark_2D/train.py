@@ -124,6 +124,9 @@ while epoch < n_epochs or iterations < n_iterations:
         train_dict = trainer.update(data, n_dwi, iterations)     # : (64, 64, 64)
         end = time()
         update_t = end - start
+        print("--------------------------------------------")
+        print(train_dict['dwi'].shape, type(train_dict))
+        print("--------------------------------------------")
 
         # Loss 값 계산
         ldwi = trainer.loss_dwi.item()
@@ -167,12 +170,12 @@ while epoch < n_epochs or iterations < n_iterations:
 
                 # print(val_ret['dwi'].shape, train_dict['dwi'].shape)  # (64, 64) (64, 64)
                 # Save generated image - Training data
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), train_dict['dwi'][:, :], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), train_dict['pred'][:, :], cmap='gray')
-
-                # Save generated image - Validation data
-                plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), val_ret['dwi'][:, :], cmap='gray')
-                plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), val_ret['pred'][:, :], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), train_dict['dwi'][:, :], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Train', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), train_dict['pred'][:, :], cmap='gray')
+                #
+                # # Save generated image - Validation data
+                # plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_real.png'.format(epoch, it + 1)), val_ret['dwi'][:, :], cmap='gray')
+                # plt.imsave(os.path.join(config["img_dir"], 'Val', 'Benchmark_{:04d}_{:04d}_fake.png'.format(epoch, it + 1)), val_ret['pred'][:, :], cmap='gray')
 
                 # Visualize generated image
                 # feat = np.squeeze((0.5 * train_dict['dwi'] + 0.5))

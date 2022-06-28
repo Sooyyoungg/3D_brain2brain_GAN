@@ -18,8 +18,8 @@ def main():
     print(device)
 
     ## Data Loader
-    train_list = pd.read_csv(config.train_list)
-    # valid_list = pd.read_csv(config.valid_list)
+    train_list = pd.read_csv(config.train_list, header=None)
+    valid_list = pd.read_csv(config.valid_list, header=None)
 
     train_data = DataSplit(config=config, data_list=train_list)
     valid_data = DataSplit(config=config, data_list=valid_list)

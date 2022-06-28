@@ -1,19 +1,18 @@
 class Config:
     ## dataset parameters
-    train_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_subjects.csv'
-    # valid_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_val.csv'
-    # test_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_test.csv'
-    data_root = '/storage/connectome/GANBERT/data/sample/sample_b0_input_ver'
+    train_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_train_subjects.csv'
+    valid_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_val_subjects.csv'
+    test_list = '/scratch/connectome/conmaster/Projects/Image_Translation/final_preprocessing/sample_test_subjects.csv'
     t1_dir = '/storage/connectome/GANBERT/data/T1'
     b0_dir = '/storage/connectome/GANBERT/data/B0'
     dwi_dir = '/storage/connectome/GANBERT/data/DWI'
     grad_dir = '/storage/connectome/GANBERT/data/Gradient'
 
     # output directory
-    log_dir = '/scratch/connectome/conmaster/Pycharm_projects/SAIT/Pix2Pix/log/2layers'
-    img_dir = '/scratch/connectome/conmaster/Pycharm_projects/SAIT/Pix2Pix/Generated_images/2layers'
-    valid_img_dir = '/scratch/connectome/conmaster/Pycharm_projects/SAIT/Pix2Pix/Best_Train_images'
-    test_img_dir = '/scratch/connectome/conmaster/Pycharm_projects/SAIT/Pix2Pix/Tested_images'
+    log_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Pix2Pix/log'
+    img_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Pix2Pix/Generated_images'
+    valid_img_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Pix2Pix/Best_Train_images'
+    test_img_dir = '/scratch/connectome/conmaster/Pycharm_projects/3D_brain2brain_GAN/Pix2Pix/Tested_images'
 
     ## basic parameters
     gpu_ids = [7]

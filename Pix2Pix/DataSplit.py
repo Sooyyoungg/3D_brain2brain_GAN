@@ -30,8 +30,7 @@ class DataSplit(nn.Module):
         self.total_grad = []
 
         for i in range(len(self.data_csv)):
-            sub = self.data_csv.iloc[i][0]
-            # print(sub)
+            sub = self.data_csv.iloc[i][1]
 
             ## T1
             t1 = nib.load(self.t1_dir + '/' + sub + '.T1.nii.gz').get_fdata()  # (140, 140, 140)
@@ -56,7 +55,7 @@ class DataSplit(nn.Module):
             t1 = t1[:, :, 70]  # (1, 140, 140)
             b0 = b0[:, :, 70]  # (1, 140, 140)
             for j in range(dwi_total.shape[0]):
-                dwi = dwi_total[j, :, :, 70]  # (140, 140)
+                dwi = np.reshape(dwi_total[j, :, :, 70], (1, 140, 140))  # (140, 140)
                 grad = grad_total[j]  # (4)
 
                 self.total_t1.append(t1)
@@ -91,10 +90,5 @@ class DataSplit(nn.Module):
 
         struct = torch.cat((t1, b0), dim=1)
         print(struct.shape)
-
-        # Reshape
-        # struct = struct.reshape((1, 64, 64))
-        # dwi = dwi.reshape((1, 64, 64))
-        # grad = grad.reshape((1, 4))
 
         return {"input": struct, "dwi": dwi, "cond": grad}

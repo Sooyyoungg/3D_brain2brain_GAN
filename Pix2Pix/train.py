@@ -26,14 +26,14 @@ def main():
 
     data_loader_train = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size, shuffle=True, num_workers=16, pin_memory=False)
     data_loader_valid = torch.utils.data.DataLoader(valid_data, batch_size=config.batch_size, shuffle=True, num_workers=16, pin_memory=False)
-    print("Train: ", len(data_loader_train), "x", config.batch_size,"(batch size) =", len(train_list))
-    print("Valid: ", len(data_loader_valid), "x", 1,"(batch size) =", len(valid_list))
+    print("Train: ", len(train_list), "subjects: ", len(data_loader_train), "x", config.batch_size,"(batch size) =", len(data_loader_train)*config.batch_size)
+    print("Valid: ", len(valid_list), "subjects: ", len(data_loader_valid), "x", config.batch_size,"(batch size) =", len(data_loader_valid)*config.batch_size)
 
     ## Start Training
     model = Pix2Pix(config)
     model.to(device)
 
-    torchsummary.summary(model, (2, 140, 140), device='cpu')
+    # torchsummary.summary(model, (2, 140, 140), device='cpu')
 
     train_writer = tensorboardX.SummaryWriter(config.log_dir)
 
